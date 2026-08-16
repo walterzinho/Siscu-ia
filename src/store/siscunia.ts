@@ -102,7 +102,7 @@ const defaultFormData: FormData = {
   ctaText: '',
   promotionText: '',
   numVersions: 2,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3.6-flash',
 }
 
 export const useSiscuniaStore = create<SiscuniaState>((set) => ({

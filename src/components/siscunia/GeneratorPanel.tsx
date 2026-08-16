@@ -197,9 +197,10 @@ export function GeneratorPanel() {
                   <Select value={formData.model} onValueChange={(v) => setFormData({ model: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro (Recomendado)</SelectItem>
-                      <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (Rápido)</SelectItem>
+                      <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
                       <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                      <SelectItem value="gemini-3.6-flash">Gemini 3.6 Flash (Recomendado)</SelectItem>
+                      <SelectItem value="gemini-3.7-flash">Gemini 3.7 Flash</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
