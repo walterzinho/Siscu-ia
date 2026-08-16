@@ -33,6 +33,8 @@ export interface FormData {
   clientBusiness: string
   clientTone: string
   clientKeywords: string
+  clientCategory: string
+  productName: string
   stationName: string
   stationFrequency: string
   stationGenre: string
@@ -50,6 +52,12 @@ export interface FormData {
   coreMessage: string
   ctaText: string
   promotionText: string
+  clientAddress: string
+  clientEmail: string
+  clientWebsite: string
+  clientPhone: string
+  clientWhatsapp: string
+  clientSocialMedia: string
   numVersions: number
   model: string
 }
@@ -90,6 +98,8 @@ const defaultFormData: FormData = {
   clientBusiness: '',
   clientTone: '',
   clientKeywords: '',
+  clientCategory: '',
+  productName: '',
   stationName: '',
   stationFrequency: '',
   stationGenre: '',
@@ -107,6 +117,12 @@ const defaultFormData: FormData = {
   coreMessage: '',
   ctaText: '',
   promotionText: '',
+  clientAddress: '',
+  clientEmail: '',
+  clientWebsite: '',
+  clientPhone: '',
+  clientWhatsapp: '',
+  clientSocialMedia: '',
   numVersions: 2,
   model: 'gemini-3.6-flash',
 }

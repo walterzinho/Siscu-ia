@@ -283,6 +283,7 @@ export function GeneratorPanel() {
 
             {/* Tab: Cliente */}
             <TabsContent value="cliente" className="space-y-4">
+              {/* Sección 1: Datos Generales */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Nombre del Cliente</Label>
@@ -324,8 +325,116 @@ export function GeneratorPanel() {
                 </div>
               </div>
 
+              {/* Sección 2: Producto o Servicio */}
               <Separator />
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">¿Qué ofrece el cliente?</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setFormData({ clientCategory: 'producto' }); if (formData.clientCategory === 'servicio') setFormData({ productName: '' }) }}
+                    className={`text-left px-4 py-3 rounded-lg border-2 transition-all hover:shadow-sm ${
+                      formData.clientCategory === 'producto'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="font-medium text-sm">Producto(s)</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Llaveros, ropa, insumos...</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setFormData({ clientCategory: 'servicio' }); if (formData.clientCategory === 'producto') setFormData({ productName: '' }) }}
+                    className={`text-left px-4 py-3 rounded-lg border-2 transition-all hover:shadow-sm ${
+                      formData.clientCategory === 'servicio'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="font-medium text-sm">Servicio(s)</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Panadería, veterinaria...</div>
+                  </button>
+                </div>
+                {formData.clientCategory && (
+                  <div className="space-y-2">
+                    <Label>
+                      Nombre del {formData.clientCategory === 'producto' ? 'Producto(s)' : 'Servicio(s)'}
+                    </Label>
+                    <Input
+                      placeholder={
+                        formData.clientCategory === 'producto'
+                          ? 'Ej: Llaveros personalizados, Camisetas deportivas'
+                          : 'Ej: Servicio de veterinaria, Panadería artesanal'
+                      }
+                      value={formData.productName}
+                      onChange={(e) => setFormData({ productName: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
 
+              {/* Sección 3: Datos de Contacto */}
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Datos de Contacto</Label>
+                  <span className="text-xs text-muted-foreground">Todos los campos son opcionales</span>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Dirección (ubicación, municipio, departamento)</Label>
+                  <Input
+                    placeholder="Ej: Cra 5 #12-30, Barrio Centro, Villavicencio - Meta"
+                    value={formData.clientAddress}
+                    onChange={(e) => setFormData({ clientAddress: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Correo Electrónico</Label>
+                    <Input
+                      type="email"
+                      placeholder="Ej: contacto@elsabor.com"
+                      value={formData.clientEmail}
+                      onChange={(e) => setFormData({ clientEmail: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Página Web</Label>
+                    <Input
+                      placeholder="Ej: www.elsabor.com"
+                      value={formData.clientWebsite}
+                      onChange={(e) => setFormData({ clientWebsite: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Teléfono Móvil</Label>
+                    <Input
+                      placeholder="Ej: 310 123 4567"
+                      value={formData.clientPhone}
+                      onChange={(e) => setFormData({ clientPhone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">WhatsApp</Label>
+                    <Input
+                      placeholder="Ej: 310 123 4567"
+                      value={formData.clientWhatsapp}
+                      onChange={(e) => setFormData({ clientWhatsapp: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Redes Sociales (Instagram, Facebook, TikTok, etc.)</Label>
+                  <Input
+                    placeholder="Ej: @elsabor, /restauranteselsabor, @elsabor_ve"
+                    value={formData.clientSocialMedia}
+                    onChange={(e) => setFormData({ clientSocialMedia: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Sección 4: Objetivo y Mensaje */}
+              <Separator />
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1"><Target className="h-3.5 w-3.5" /> Objetivo de la Pieza</Label>

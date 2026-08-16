@@ -55,6 +55,33 @@ function buildPrompt(data: Record<string, any>, settings: Record<string, string>
   userPrompt += `- Palabras clave: ${data.clientKeywords || 'No especificadas'}
 `
 
+  // Producto o Servicio
+  if (data.clientCategory) {
+    const catLabel = data.clientCategory === 'producto' ? 'Producto(s)' : 'Servicio(s)'
+    userPrompt += `- Tipo de oferta: ${catLabel}
+`
+    if (data.productName) userPrompt += `- ${catLabel}: ${data.productName}
+`
+  }
+
+  // Datos de contacto (se incluyen dinámicamente solo si están llenos)
+  const contactData: string[] = []
+  if (data.clientAddress) contactData.push(`Dirección: ${data.clientAddress}`)
+  if (data.clientPhone) contactData.push(`Teléfono: ${data.clientPhone}`)
+  if (data.clientWhatsapp) contactData.push(`WhatsApp: ${data.clientWhatsapp}`)
+  if (data.clientEmail) contactData.push(`Correo: ${data.clientEmail}`)
+  if (data.clientWebsite) contactData.push(`Web: ${data.clientWebsite}`)
+  if (data.clientSocialMedia) contactData.push(`Redes: ${data.clientSocialMedia}`)
+  if (contactData.length > 0) {
+    userPrompt += `
+## DATOS DE CONTACTO DEL CLIENTE
+`
+    userPrompt += contactData.map(c => `- ${c}`).join('\n') + '\n'
+    userPrompt += `
+IMPORTANTE: Incorpora los datos de contacto proporcionados de forma natural dentro del libreto (dirección para "visítanos", teléfono/WhatsApp para "llama al" o "escríbenos al", redes para "síguenos en"). No los enumeres todos de golpe; elige los más relevantes según el objetivo de la pieza.
+`
+  }
+
   userPrompt += `
 ## DATOS DE LA EMISORA / PROGRAMA
 `
