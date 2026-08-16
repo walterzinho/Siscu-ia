@@ -41,7 +41,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight leading-none">Siscuñia</h1>
-              <p className="text-xs text-muted-foreground">Generador de Libretos de Radio con IA</p>
+              <p className="text-xs text-muted-foreground">Generador de Libretos de información comercial para radio con IA</p>
             </div>
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t py-4 mt-auto">
         <div className="max-w-5xl mx-auto px-4 text-center text-xs text-muted-foreground">
-          Siscuñia · Generador de libretos de radio con Google AI Studio + Notion
+          Siscuñia · Generador de Libretos de información comercial para radio con IA
         </div>
       </footer>
     </div>

@@ -14,10 +14,11 @@ import {
 import { toast } from 'sonner'
 
 const TYPE_LABELS: Record<string, string> = {
-  CUNA_COMERCIAL: 'Cuña Comercial',
-  CAMPAIGNA: 'Campaña',
   LOCUCION_INSTITUCIONAL: 'Locución Institucional',
   MICRO_PROGRAMA: 'Micro-programa',
+  CAMPAIGNA_INSTITUCIONAL: 'Campaña Institucional',
+  CUNA_PROGRAMA_FRANJA: 'Cuña de Programa / Franja',
+  INFOMERCIAL: 'Infomercial',
 }
 
 export function HistoryPanel() {

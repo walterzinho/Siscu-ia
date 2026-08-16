@@ -2,10 +2,11 @@ import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 const SCRIPT_TYPE_LABELS: Record<string, string> = {
-  CUNA_COMERCIAL: 'Cuña Comercial',
-  CAMPAIGNA: 'Campaña Completa',
   LOCUCION_INSTITUCIONAL: 'Locución Institucional',
   MICRO_PROGRAMA: 'Micro-programa',
+  CAMPAIGNA_INSTITUCIONAL: 'Campaña Institucional',
+  CUNA_PROGRAMA_FRANJA: 'Cuña de Programa / Franja',
+  INFOMERCIAL: 'Infomercial',
 }
 
 export async function POST(request: Request) {

@@ -1,0 +1,602 @@
+Open braces: 241, Close braces: 240, Diff: 1
+  Line 15: balance=1 import {
+  Line 16: balance=1   Sparkles, Send, Copy, Pencil, Check, Loader2,
+  Line 17: balance=1   Radio, User, Mic, Target, FileText, Megaphone, Music,
+  Line 21: balance=1 const ICON_MAP: Record<string, React.ReactNode> = {
+  Line 22: balance=1   radio: <Radio className="h-5 w-5" />,
+  Line 23: balance=1   mic: <Mic className="h-5 w-5" />,
+  Line 24: balance=1   megaphone: <Megaphone className="h-5 w-5" />,
+  Line 25: balance=1   music: <Music className="h-5 w-5" />,
+  Line 26: balance=1   'file-text': <FileText className="h-5 w-5" />,
+  Line 52: balance=1 export function GeneratorPanel() {
+  Line 53: balance=2   const {
+  Line 54: balance=2     formData, setFormData, resetForm,
+  Line 55: balance=2     isGenerating, setIsGenerating,
+  Line 56: balance=2     generatedResult, setGeneratedResult,
+  Line 57: balance=2     settings, activeTab, setActiveTab,
+  Line 58: balance=1   } = useSiscuniaStore()
+  Line 59: balance=1 
+  Line 60: balance=1   const [sendingToNotion, setSendingToNotion] = useState<string | null>(null)
+  Line 61: balance=1   const [editingVersion, setEditingVersion] = useState<number | null>(null)
+  Line 62: balance=1   const [editedText, setEditedText] = useState('')
+  Line 63: balance=1   const [lastNotionUrl, setLastNotionUrl] = useState('')
+  Line 64: balance=1 
+  Line 65: balance=1   const meta = SCRIPT_TYPE_META[formData.scriptType]
+  Line 66: balance=1   const showCliente = meta?.infoSource === 'cliente' || meta?.infoSource === 'am
+  Line 67: balance=1   const showEmisora = meta?.infoSource === 'emisora' || meta?.infoSource === 'am
+  Line 68: balance=1 
+  Line 69: balance=2   const handleGenerate = async () => {
+  Line 70: balance=3     if (!settings?.googleApiKeySet) {
+  Line 71: balance=3       toast.error('Configura tu API Key de Google AI Studio primero')
+  Line 72: balance=3       setActiveTab('config')
+  Line 73: balance=3       return
+  Line 74: balance=2     }
+  Line 75: balance=2     setIsGenerating(true)
+  Line 76: balance=2     setGeneratedResult(null)
+  Line 77: balance=3     try {
+  Line 78: balance=4       const res = await fetch('/api/generate', {
+  Line 79: balance=4         method: 'POST',
+  Line 80: balance=4         headers: { 'Content-Type': 'application/json' },
+  Line 81: balance=4         body: JSON.stringify(formData),
+  Line 82: balance=3       })
+  Line 83: balance=3       const data = await res.json()
+  Line 84: balance=4       if (data.success) {
+  Line 85: balance=4         setGeneratedResult(data.script)
+  Line 86: balance=4         toast.success('Libreto generado exitosamente')
+  Line 87: balance=4       } else {
+  Line 88: balance=4         toast.error(data.error || 'Error al generar')
+  Line 89: balance=3       }
+  Line 90: balance=3     } catch {
+  Line 91: balance=3       toast.error('Error de conexión con el servidor')
+  Line 92: balance=3     } finally {
+  Line 93: balance=3       setIsGenerating(false)
+  Line 94: balance=2     }
+  Line 95: balance=1   }
+  Line 96: balance=1 
+  Line 97: balance=2   const handleSendToNotion = async (versionIndex: number) => {
+  Line 98: balance=2     if (!generatedResult?.id) return
+  Line 99: balance=3     if (!settings?.notionTokenSet || !settings?.notionDatabaseId) {
+  Line 100: balance=3       toast.error('Configura el Token de Notion y el ID de la base de datos prim
+  Line 101: balance=3       setActiveTab('config')
+  Line 102: balance=3       return
+  Line 103: balance=2     }
+  Line 104: balance=2     setSendingToNotion(String(versionIndex))
+  Line 105: balance=3     try {
+  Line 106: balance=3       const contentToSend = editingVersion === versionIndex ? editedText : undef
+  Line 107: balance=4       const res = await fetch('/api/send-to-notion', {
+  Line 108: balance=4         method: 'POST',
+  Line 109: balance=4         headers: { 'Content-Type': 'application/json' },
+  Line 110: balance=4         body: JSON.stringify({ scriptId: generatedResult.id, versionIndex, edite
+  Line 111: balance=3       })
+  Line 112: balance=3       const data = await res.json()
+  Line 113: balance=4       if (data.success) {
+  Line 114: balance=4         toast.success('Enviado a Notion correctamente')
+  Line 115: balance=4         setLastNotionUrl(data.notionUrl)
+  Line 116: balance=4       } else {
+  Line 117: balance=4         toast.error(data.error || 'Error al enviar a Notion')
+  Line 118: balance=3       }
+  Line 119: balance=3     } catch {
+  Line 120: balance=3       toast.error('Error de conexión con Notion')
+  Line 121: balance=3     } finally {
+  Line 122: balance=3       setSendingToNotion(null)
+  Line 123: balance=2     }
+  Line 124: balance=1   }
+  Line 125: balance=1 
+  Line 126: balance=2   const handleCopy = (text: string) => {
+  Line 127: balance=2     navigator.clipboard.writeText(text)
+  Line 128: balance=2     toast.success('Copiado al portapapeles')
+  Line 129: balance=1   }
+  Line 130: balance=1 
+  Line 131: balance=2   const startEditing = (idx: number, text: string) => {
+  Line 132: balance=2     setEditingVersion(idx)
+  Line 133: balance=2     setEditedText(text)
+  Line 134: balance=1   }
+  Line 135: balance=1 
+  Line 136: balance=2   const saveEditing = () => {
+  Line 137: balance=3     if (generatedResult?.versiones && editingVersion !== null) {
+  Line 138: balance=3       const updated = { ...generatedResult }
+  Line 139: balance=3       updated.versiones = [...updated.versiones]
+  Line 140: balance=4       updated.versiones[editingVersion] = {
+  Line 141: balance=4         ...updated.versiones[editingVersion],
+  Line 142: balance=4         libreto: editedText,
+  Line 143: balance=3       }
+  Line 144: balance=3       setGeneratedResult(updated)
+  Line 145: balance=2     }
+  Line 146: balance=2     setEditingVersion(null)
+  Line 147: balance=2     toast.success('Versión actualizada')
+  Line 148: balance=1   }
+  Line 149: balance=1 
+  Line 150: balance=1   return (
+  Line 151: balance=1     <div className="space-y-6">
+  Line 152: balance=1       {/* Form Card */}
+  Line 153: balance=1       <Card>
+  Line 154: balance=1         <CardHeader>
+  Line 155: balance=1           <div className="flex items-center justify-between flex-wrap gap-2">
+  Line 156: balance=1             <div>
+  Line 157: balance=1               <CardTitle className="flex items-center gap-2">
+  Line 158: balance=1                 <FileText className="h-5 w-5" />
+  Line 159: balance=1                 Generar Nuevo Libreto
+  Line 160: balance=1               </CardTitle>
+  Line 161: balance=1               <CardDescription className="mt-1">
+  Line 162: balance=1                 Selecciona el tipo y completa la información que te pide según e
+  Line 163: balance=1               </CardDescription>
+  Line 164: balance=1             </div>
+  Line 165: balance=1             <div className="flex gap-2">
+  Line 166: balance=1               <Button variant="outline" size="sm" onClick={resetForm}>Limpiar</B
+  Line 167: balance=1               <Button onClick={handleGenerate} disabled={isGenerating} size="sm"
+  Line 168: balance=2                 {isGenerating
+  Line 169: balance=2                   ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generand
+  Line 170: balance=1                   : <><Sparkles className="h-4 w-4 mr-2" /> Generar</>}
+  Line 171: balance=1               </Button>
+  Line 172: balance=1             </div>
+  Line 173: balance=1           </div>
+  Line 174: balance=1         </CardHeader>
+  Line 175: balance=1         <CardContent>
+  Line 176: balance=1           <Tabs defaultValue="tipo" className="w-full">
+  Line 177: balance=1             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4">
+  Line 178: balance=1               <TabsTrigger value="tipo" className="text-xs sm:text-sm">Tipo</Tab
+  Line 179: balance=1               {showCliente && <TabsTrigger value="cliente" className="text-xs sm
+  Line 180: balance=1               {showEmisora && <TabsTrigger value="emisora" className="text-xs sm
+  Line 181: balance=1               <TabsTrigger value="produccion" className="text-xs sm:text-sm">Pro
+  Line 182: balance=1             </TabsList>
+  Line 183: balance=1 
+  Line 184: balance=1             {/* ============ TAB TIPO ============ */}
+  Line 185: balance=1             <TabsContent value="tipo" className="space-y-4">
+  Line 186: balance=1               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  Line 187: balance=2                 {(Object.entries(SCRIPT_TYPE_META) as [ScriptType, typeof SCRIPT
+  Line 188: balance=2                   <button
+  Line 189: balance=2                     key={key}
+  Line 190: balance=2                     type="button"
+  Line 191: balance=2                     onClick={() => setFormData({ scriptType: key })}
+  Line 192: balance=4                     className={`text-left p-4 rounded-lg border-2 transition-all
+  Line 193: balance=4                       formData.scriptType === key
+  Line 194: balance=4                         ? 'border-primary bg-primary/5'
+  Line 195: balance=4                         : 'border-border hover:border-primary/30'
+  Line 196: balance=2                     }`}
+  Line 197: balance=2                   >
+  Line 198: balance=2                     <div className="mt-0.5 text-primary">{ICON_MAP[st.icon]}</di
+  Line 199: balance=2                     <div>
+  Line 200: balance=2                       <div className="font-medium">{st.label}</div>
+  Line 201: balance=2                       <div className="text-sm text-muted-foreground mt-0.5">{st.
+  Line 202: balance=2                       <Badge variant="outline" className="mt-2 text-[10px]">
+  Line 203: balance=2                         {st.infoSource === 'cliente' ? 'Info de Cliente' : st.in
+  Line 204: balance=2                       </Badge>
+  Line 205: balance=2                     </div>
+  Line 206: balance=2                   </button>
+  Line 207: balance=1                 ))}
+  Line 208: balance=1               </div>
+  Line 209: balance=1 
+  Line 210: balance=1               {/* Campos condicionales por tipo */}
+  Line 211: balance=2               {formData.scriptType === 'LOCUCION_INSTITUCIONAL' && (
+  Line 212: balance=2                 <>
+  Line 213: balance=2                   <Separator />
+  Line 214: balance=2                   <div className="space-y-2">
+  Line 215: balance=2                     <Label>Tipo de Locución</Label>
+  Line 216: balance=2                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+  Line 217: balance=3                       {INSTITUTION_TYPES.map((t) => (
+  Line 218: balance=3                         <button
+  Line 219: balance=3                           key={t.value}
+  Line 220: balance=3                           type="button"
+  Line 221: balance=3                           onClick={() => setFormData({ institutionType: t.value 
+  Line 222: balance=5                           className={`text-left px-3 py-2 rounded-md border text
+  Line 223: balance=5                             formData.institutionType === t.value
+  Line 224: balance=5                               ? 'border-primary bg-primary/5 font-medium'
+  Line 225: balance=5                               : 'border-border hover:border-primary/30'
+  Line 226: balance=3                           }`}
+  Line 227: balance=3                         >{t.label}</button>
+  Line 228: balance=2                       ))}
+  Line 229: balance=2                     </div>
+  Line 230: balance=2                   </div>
+  Line 231: balance=2                 </>
+  Line 232: balance=1               )}
+  Line 233: balance=1 
+  Line 234: balance=2               {formData.scriptType === 'MICRO_PROGRAMA' && (
+  Line 235: balance=2                 <>
+  Line 236: balance=2                   <Separator />
+  Line 237: balance=2                   <div className="space-y-2">
+  Line 238: balance=2                     <Label>Duración</Label>
+  Line 239: balance=2                     <Select value={formData.microDuration} onValueChange={(v) =>
+  Line 240: balance=2                       <SelectTrigger className="w-full sm:w-48"><SelectValue /><
+  Line 241: balance=2                       <SelectContent>
+  Line 242: balance=2                         <SelectItem value="2">2 minutos</SelectItem>
+  Line 243: balance=2                         <SelectItem value="3">3 minutos</SelectItem>
+  Line 244: balance=2                         <SelectItem value="4">4 minutos</SelectItem>
+  Line 245: balance=2                         <SelectItem value="5">5 minutos</SelectItem>
+  Line 246: balance=2                       </SelectContent>
+  Line 247: balance=2                     </Select>
+  Line 248: balance=2                   </div>
+  Line 249: balance=2                 </>
+  Line 250: balance=1               )}
+  Line 251: balance=1 
+  Line 252: balance=2               {formData.scriptType === 'CAMPAIGNA_INSTITUCIONAL' && (
+  Line 253: balance=2                 <>
+  Line 254: balance=2                   <Separator />
+  Line 255: balance=2                   <div className="space-y-3">
+  Line 256: balance=2                     <div className="space-y-2">
+  Line 257: balance=2                       <Label>Tipo de Campaña</Label>
+  Line 258: balance=2                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+  Line 259: balance=3                         {CAMPAIGN_INST_TYPES.map((t) => (
+  Line 260: balance=3                           <button
+  Line 261: balance=3                             key={t.value}
+  Line 262: balance=3                             type="button"
+  Line 263: balance=3                             onClick={() => setFormData({ campaignInstitutionalTy
+  Line 264: balance=5                             className={`text-left px-3 py-2 rounded-md border te
+  Line 265: balance=5                               formData.campaignInstitutionalType === t.value
+  Line 266: balance=5                                 ? 'border-primary bg-primary/5 font-medium'
+  Line 267: balance=5                                 : 'border-border hover:border-primary/30'
+  Line 268: balance=3                             }`}
+  Line 269: balance=3                           >{t.label}</button>
+  Line 270: balance=2                         ))}
+  Line 271: balance=2                       </div>
+  Line 272: balance=2                     </div>
+  Line 273: balance=2                     <div className="space-y-2">
+  Line 274: balance=2                       <Label>Tema de la Campaña</Label>
+  Line 275: balance=2                       <Input
+  Line 276: balance=2                         placeholder="Ej: Reciclaje en el municipio, Semáforos pe
+  Line 277: balance=2                         value={formData.campaignTopic}
+  Line 278: balance=2                         onChange={(e) => setFormData({ campaignTopic: e.target.v
+  Line 279: balance=2                       />
+  Line 280: balance=2                     </div>
+  Line 281: balance=2                   </div>
+  Line 282: balance=2                 </>
+  Line 283: balance=1               )}
+  Line 284: balance=1 
+  Line 285: balance=2               {formData.scriptType === 'CUNA_PROGRAMA_FRANJA' && (
+  Line 286: balance=2                 <>
+  Line 287: balance=2                   <Separator />
+  Line 288: balance=2                   <div className="space-y-2">
+  Line 289: balance=2                     <Label>¿Es para un programa o una franja musical?</Label>
+  Line 290: balance=2                     <div className="grid grid-cols-3 gap-2">
+  Line 291: balance=3                       {PROGRAM_FRANJA_TYPES.map((t) => (
+  Line 292: balance=3                         <button
+  Line 293: balance=3                           key={t.value}
+  Line 294: balance=3                           type="button"
+  Line 295: balance=3                           onClick={() => setFormData({ programFranjaType: t.valu
+  Line 296: balance=5                           className={`text-left px-3 py-2 rounded-md border text
+  Line 297: balance=5                             formData.programFranjaType === t.value
+  Line 298: balance=5                               ? 'border-primary bg-primary/5 font-medium'
+  Line 299: balance=5                               : 'border-border hover:border-primary/30'
+  Line 300: balance=3                           }`}
+  Line 301: balance=3                         >{t.label}</button>
+  Line 302: balance=2                       ))}
+  Line 303: balance=2                     </div>
+  Line 304: balance=2                   </div>
+  Line 305: balance=2                 </>
+  Line 306: balance=1               )}
+  Line 307: balance=1 
+  Line 308: balance=2               {formData.scriptType === 'INFOMERCIAL' && (
+  Line 309: balance=2                 <>
+  Line 310: balance=2                   <Separator />
+  Line 311: balance=2                   <div className="space-y-2">
+  Line 312: balance=2                     <Label>Duración del Infomercial</Label>
+  Line 313: balance=2                     <Select value={formData.infomercialDuration} onValueChange={
+  Line 314: balance=2                       <SelectTrigger className="w-full sm:w-48"><SelectValue /><
+  Line 315: balance=2                       <SelectContent>
+  Line 316: balance=2                         <SelectItem value="3">3 minutos</SelectItem>
+  Line 317: balance=2                         <SelectItem value="5">5 minutos</SelectItem>
+  Line 318: balance=2                         <SelectItem value="10">10 minutos</SelectItem>
+  Line 319: balance=2                         <SelectItem value="15">15 minutos</SelectItem>
+  Line 320: balance=2                       </SelectContent>
+  Line 321: balance=2                     </Select>
+  Line 322: balance=2                   </div>
+  Line 323: balance=2                 </>
+  Line 324: balance=1               )}
+  Line 325: balance=1 
+  Line 326: balance=1               <Separator />
+  Line 327: balance=1               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 328: balance=1                 <div className="space-y-2">
+  Line 329: balance=1                   <Label>Modelo de IA</Label>
+  Line 330: balance=1                   <Select value={formData.model} onValueChange={(v) => setFormDa
+  Line 331: balance=1                     <SelectTrigger><SelectValue /></SelectTrigger>
+  Line 332: balance=1                     <SelectContent>
+  Line 333: balance=1                       <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectI
+  Line 334: balance=1                       <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</Sel
+  Line 335: balance=1                       <SelectItem value="gemini-3.6-flash">Gemini 3.6 Flash (Rec
+  Line 336: balance=1                       <SelectItem value="gemini-3.7-flash">Gemini 3.7 Flash</Sel
+  Line 337: balance=1                     </SelectContent>
+  Line 338: balance=1                   </Select>
+  Line 339: balance=1                 </div>
+  Line 340: balance=1                 <div className="space-y-2">
+  Line 341: balance=1                   <Label>Versiones a Generar</Label>
+  Line 342: balance=1                   <Select value={String(formData.numVersions)} onValueChange={(v
+  Line 343: balance=1                     <SelectTrigger><SelectValue /></SelectTrigger>
+  Line 344: balance=1                     <SelectContent>
+  Line 345: balance=1                       <SelectItem value="1">1 versión</SelectItem>
+  Line 346: balance=1                       <SelectItem value="2">2 versiones</SelectItem>
+  Line 347: balance=1                       <SelectItem value="3">3 versiones</SelectItem>
+  Line 348: balance=1                     </SelectContent>
+  Line 349: balance=1                   </Select>
+  Line 350: balance=1                 </div>
+  Line 351: balance=1               </div>
+  Line 352: balance=1             </TabsContent>
+  Line 353: balance=1 
+  Line 354: balance=1             {/* ============ TAB CLIENTE ============ */}
+  Line 355: balance=2             {showCliente && (
+  Line 356: balance=2               <TabsContent value="cliente" className="space-y-4">
+  Line 357: balance=2                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 358: balance=2                   <div className="space-y-2">
+  Line 359: balance=2                     <Label className="flex items-center gap-1"><User className="
+  Line 360: balance=2                     <Input placeholder="Ej: Restaurantes El Sabor" value={formDa
+  Line 361: balance=2                   </div>
+  Line 362: balance=2                   <div className="space-y-2">
+  Line 363: balance=2                     <Label>Rubro / Industria</Label>
+  Line 364: balance=2                     <Input placeholder="Ej: Gastronomía, Salud, Tecnología" valu
+  Line 365: balance=2                   </div>
+  Line 366: balance=2                   <div className="space-y-2">
+  Line 367: balance=2                     <Label>Tono de Marca</Label>
+  Line 368: balance=2                     <Select value={formData.clientTone} onValueChange={(v) => se
+  Line 369: balance=2                       <SelectTrigger><SelectValue placeholder="Seleccionar..." /
+  Line 370: balance=2                       <SelectContent>
+  Line 371: balance=2                         <SelectItem value="formal">Formal</SelectItem>
+  Line 372: balance=2                         <SelectItem value="cercano">Cercano / Amigable</SelectIt
+  Line 373: balance=2                         <SelectItem value="joven">Joven / Casual</SelectItem>
+  Line 374: balance=2                         <SelectItem value="lujoso">Premium / Lujo</SelectItem>
+  Line 375: balance=2                         <SelectItem value="divertido">Divertido / Humorístico</S
+  Line 376: balance=2                         <SelectItem value="emocional">Emocional / Inspirador</Se
+  Line 377: balance=2                       </SelectContent>
+  Line 378: balance=2                     </Select>
+  Line 379: balance=2                   </div>
+  Line 380: balance=2                   <div className="space-y-2">
+  Line 381: balance=2                     <Label>Palabras Clave</Label>
+  Line 382: balance=2                     <Input placeholder="Ej: frescura, tradición, confianza" valu
+  Line 383: balance=2                   </div>
+  Line 384: balance=2                 </div>
+  Line 385: balance=2 
+  Line 386: balance=2                 <Separator />
+  Line 387: balance=2                 <div className="space-y-3">
+  Line 388: balance=2                   <Label className="text-sm font-medium">¿Qué ofrece el cliente?
+  Line 389: balance=2                   <div className="grid grid-cols-2 gap-3">
+  Line 390: balance=2                     <button
+  Line 391: balance=2                       type="button"
+  Line 392: balance=2                       onClick={() => setFormData({ clientCategory: 'producto' })
+  Line 393: balance=4                       className={`text-left px-4 py-3 rounded-lg border-2 transi
+  Line 394: balance=4                         formData.clientCategory === 'producto' ? 'border-primary
+  Line 395: balance=2                       }`}
+  Line 396: balance=2                     >
+  Line 397: balance=2                       <div className="font-medium text-sm">Producto(s)</div>
+  Line 398: balance=2                       <div className="text-xs text-muted-foreground mt-0.5">Llav
+  Line 399: balance=2                     </button>
+  Line 400: balance=2                     <button
+  Line 401: balance=2                       type="button"
+  Line 402: balance=2                       onClick={() => setFormData({ clientCategory: 'servicio' })
+  Line 403: balance=4                       className={`text-left px-4 py-3 rounded-lg border-2 transi
+  Line 404: balance=4                         formData.clientCategory === 'servicio' ? 'border-primary
+  Line 405: balance=2                       }`}
+  Line 406: balance=2                     >
+  Line 407: balance=2                       <div className="font-medium text-sm">Servicio(s)</div>
+  Line 408: balance=2                       <div className="text-xs text-muted-foreground mt-0.5">Pana
+  Line 409: balance=2                     </button>
+  Line 410: balance=2                   </div>
+  Line 411: balance=3                   {formData.clientCategory && (
+  Line 412: balance=3                     <div className="space-y-2">
+  Line 413: balance=3                       <Label>Nombre del {formData.clientCategory === 'producto' 
+  Line 414: balance=3                       <Input
+  Line 415: balance=3                         placeholder={formData.clientCategory === 'producto' ? 'E
+  Line 416: balance=3                         value={formData.productName} onChange={(e) => setFormDat
+  Line 417: balance=3                       />
+  Line 418: balance=3                     </div>
+  Line 419: balance=2                   )}
+  Line 420: balance=2                 </div>
+  Line 421: balance=2 
+  Line 422: balance=2                 <Separator />
+  Line 423: balance=2                 <div className="space-y-3">
+  Line 424: balance=2                   <div className="flex items-center justify-between">
+  Line 425: balance=2                     <Label className="text-sm font-medium">Datos de Contacto</La
+  Line 426: balance=2                     <span className="text-xs text-muted-foreground">Opcionales</
+  Line 427: balance=2                   </div>
+  Line 428: balance=2                   <div className="space-y-2">
+  Line 429: balance=2                     <Label className="text-xs text-muted-foreground">Dirección (
+  Line 430: balance=2                     <Input placeholder="Ej: Cra 5 #12-30, Barrio Centro, Villavi
+  Line 431: balance=2                   </div>
+  Line 432: balance=2                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 433: balance=2                     <div className="space-y-2">
+  Line 434: balance=2                       <Label className="text-xs text-muted-foreground">Correo El
+  Line 435: balance=2                       <Input type="email" placeholder="Ej: contacto@elsabor.com"
+  Line 436: balance=2                     </div>
+  Line 437: balance=2                     <div className="space-y-2">
+  Line 438: balance=2                       <Label className="text-xs text-muted-foreground">Página We
+  Line 439: balance=2                       <Input placeholder="Ej: www.elsabor.com" value={formData.c
+  Line 440: balance=2                     </div>
+  Line 441: balance=2                     <div className="space-y-2">
+  Line 442: balance=2                       <Label className="text-xs text-muted-foreground">Teléfono 
+  Line 443: balance=2                       <Input placeholder="Ej: 310 123 4567" value={formData.clie
+  Line 444: balance=2                     </div>
+  Line 445: balance=2                     <div className="space-y-2">
+  Line 446: balance=2                       <Label className="text-xs text-muted-foreground">WhatsApp<
+  Line 447: balance=2                       <Input placeholder="Ej: 310 123 4567" value={formData.clie
+  Line 448: balance=2                     </div>
+  Line 449: balance=2                   </div>
+  Line 450: balance=2                   <div className="space-y-2">
+  Line 451: balance=2                     <Label className="text-xs text-muted-foreground">Redes Socia
+  Line 452: balance=2                     <Input placeholder="Ej: @elsabor, /restauranteselsabor" valu
+  Line 453: balance=2                   </div>
+  Line 454: balance=2                 </div>
+  Line 455: balance=2 
+  Line 456: balance=2                 <Separator />
+  Line 457: balance=2                 <div className="space-y-4">
+  Line 458: balance=2                   <div className="space-y-2">
+  Line 459: balance=2                     <Label className="flex items-center gap-1"><Target className
+  Line 460: balance=2                     <Select value={formData.objective} onValueChange={(v) => set
+  Line 461: balance=2                       <SelectTrigger><SelectValue placeholder="Seleccionar..." /
+  Line 462: balance=2                       <SelectContent>
+  Line 463: balance=2                         <SelectItem value="venta">Generar Ventas</SelectItem>
+  Line 464: balance=2                         <SelectItem value="informacion">Informar / Comunicar</Se
+  Line 465: balance=2                         <SelectItem value="imagen">Posicionar Imagen / Marca</Se
+  Line 466: balance=2                         <SelectItem value="entretenimiento">Entretenimiento</Sel
+  Line 467: balance=2                         <SelectItem value="recordacion">Generar Recordación</Sel
+  Line 468: balance=2                       </SelectContent>
+  Line 469: balance=2                     </Select>
+  Line 470: balance=2                   </div>
+  Line 471: balance=2                   <div className="space-y-2">
+  Line 472: balance=2                     <Label>Mensaje Central</Label>
+  Line 473: balance=2                     <Textarea placeholder="¿Cuál es el mensaje principal que deb
+  Line 474: balance=2                   </div>
+  Line 475: balance=2                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 476: balance=2                     <div className="space-y-2">
+  Line 477: balance=2                       <Label>Llamado a la Acción (CTA)</Label>
+  Line 478: balance=2                       <Input placeholder="Ej: Visítanos en Av. Principal #123" v
+  Line 479: balance=2                     </div>
+  Line 480: balance=2                     <div className="space-y-2">
+  Line 481: balance=2                       <Label>Oferta / Promoción</Label>
+  Line 482: balance=2                       <Input placeholder="Ej: 20% de descuento este fin de seman
+  Line 483: balance=2                     </div>
+  Line 484: balance=2                   </div>
+  Line 485: balance=2                 </div>
+  Line 486: balance=2               </TabsContent>
+  Line 487: balance=1             )}
+  Line 488: balance=1 
+  Line 489: balance=1             <TabsContent value={showEmisora ? 'emisora' : 'cliente-hidden'} clas
+  Line 490: balance=1                 <p className="text-sm text-muted-foreground">
+  Line 491: balance=2                   {meta?.infoSource === 'ambos'
+  Line 492: balance=2                     ? 'Completa los datos de la emisora/programa. También puedes
+  Line 493: balance=1                     : 'Datos de la emisora y programa. Si no los llenas, se usan
+  Line 494: balance=1                 </p>
+  Line 495: balance=1                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 496: balance=1                   <div className="space-y-2">
+  Line 497: balance=1                     <Label className="flex items-center gap-1"><Radio className=
+  Line 498: balance=1                     <Input placeholder={settings?.stationName || 'Ej: Radio Sisc
+  Line 499: balance=1                   </div>
+  Line 500: balance=1                   <div className="space-y-2">
+  Line 501: balance=1                     <Label>Frecuencia</Label>
+  Line 502: balance=1                     <Input placeholder={settings?.stationFrequency || 'Ej: 102.5
+  Line 503: balance=1                   </div>
+  Line 504: balance=1                   <div className="space-y-2">
+  Line 505: balance=1                     <Label>Nombre del Programa</Label>
+  Line 506: balance=1                     <Input placeholder="Ej: Mañanas Activas" value={formData.pro
+  Line 507: balance=1                   </div>
+  Line 508: balance=1                   <div className="space-y-2">
+  Line 509: balance=1                     <Label>Horario</Label>
+  Line 510: balance=1                     <Input placeholder="Ej: Lunes a Viernes 6:00 AM" value={form
+  Line 511: balance=1                   </div>
+  Line 512: balance=1                   <div className="space-y-2">
+  Line 513: balance=1                     <Label>Género Musical</Label>
+  Line 514: balance=1                     <Input placeholder={settings?.stationGenre || 'Ej: Pop Latin
+  Line 515: balance=1                   </div>
+  Line 516: balance=1                   <div className="space-y-2">
+  Line 517: balance=1                     <Label>Audiencia</Label>
+  Line 518: balance=1                     <Input placeholder={settings?.stationAudience || 'Ej: Mujere
+  Line 519: balance=1                   </div>
+  Line 520: balance=1                 </div>
+  Line 521: balance=1 
+  Line 522: balance=2                 {/* DEBUG: test */
+  Line 523: balance=2                 <div />
+  Line 524: balance=2               </TabsContent>
+  Line 525: balance=2 
+  Line 526: balance=2             {/* ============ TAB PRODUCCIÓN ============ */}
+  Line 527: balance=2             <TabsContent value="produccion" className="space-y-4">
+  Line 528: balance=2               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  Line 529: balance=2                 <div className="space-y-2">
+  Line 530: balance=2                   <Label className="flex items-center gap-1"><Mic className="h-3
+  Line 531: balance=2                   <Select value={formData.voiceType} onValueChange={(v) => setFo
+  Line 532: balance=2                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /><
+  Line 533: balance=2                     <SelectContent>
+  Line 534: balance=2                       <SelectItem value="masculina">Masculina</SelectItem>
+  Line 535: balance=2                       <SelectItem value="femenina">Femenina</SelectItem>
+  Line 536: balance=2                       <SelectItem value="doble">Doble (Masc. + Fem.)</SelectItem
+  Line 537: balance=2                     </SelectContent>
+  Line 538: balance=2                   </Select>
+  Line 539: balance=2                 </div>
+  Line 540: balance=2                 <div className="space-y-2">
+  Line 541: balance=2                   <Label>Tono del Locutor</Label>
+  Line 542: balance=2                   <Select value={formData.voiceTone} onValueChange={(v) => setFo
+  Line 543: balance=2                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /><
+  Line 544: balance=2                     <SelectContent>
+  Line 545: balance=2                       <SelectItem value="formal">Formal / Institucional</SelectI
+  Line 546: balance=2                       <SelectItem value="coloquial">Coloquial / Conversacional</
+  Line 547: balance=2                       <SelectItem value="joven">Joven / Dinámico</SelectItem>
+  Line 548: balance=2                       <SelectItem value="entusiasta">Entusiasta / Enérgico</Sele
+  Line 549: balance=2                       <SelectItem value="suave">Suave / Relajado</SelectItem>
+  Line 550: balance=2                       <SelectItem value="autoritario">Autoritario / Seguro</Sele
+  Line 551: balance=2                     </SelectContent>
+  Line 552: balance=2                   </Select>
+  Line 553: balance=2                 </div>
+  Line 554: balance=2                 <div className="space-y-2 sm:col-span-2">
+  Line 555: balance=2                   <Label>Estilo Musical de Fondo</Label>
+  Line 556: balance=2                   <Input placeholder="Ej: Pop alegre, Instrumental corporativo, 
+  Line 557: balance=2                 </div>
+  Line 558: balance=2               </div>
+  Line 559: balance=2             </TabsContent>
+  Line 560: balance=2           </Tabs>
+  Line 561: balance=2         </CardContent>
+  Line 562: balance=2       </Card>
+  Line 563: balance=2 
+  Line 564: balance=2       {/* ============ RESULTADOS ============ */}
+  Line 565: balance=3       {generatedResult?.versiones && (
+  Line 566: balance=3         <div className="space-y-4">
+  Line 567: balance=3           <div className="flex items-center justify-between">
+  Line 568: balance=3             <h2 className="text-lg font-semibold flex items-center gap-2">
+  Line 569: balance=3               <Sparkles className="h-5 w-5 text-amber-500" />
+  Line 570: balance=3               {generatedResult.titulo_sugerido || 'Resultado Generado'}
+  Line 571: balance=3             </h2>
+  Line 572: balance=3             <div className="flex items-center gap-2">
+  Line 573: balance=3               {generatedResult.scriptType && <Badge variant="outline">{generated
+  Line 574: balance=3               {generatedResult.clientName && <Badge variant="secondary">{generat
+  Line 575: balance=3             </div>
+  Line 576: balance=3           </div>
+  Line 577: balance=4           {generatedResult.versiones.map((version, idx) => (
+  Line 578: balance=4             <Card key={idx}>
+  Line 579: balance=4               <CardHeader className="pb-3">
+  Line 580: balance=4                 <div className="flex items-center justify-between flex-wrap gap-
+  Line 581: balance=4                   <div>
+  Line 582: balance=4                     <CardTitle className="text-base">{version.titulo}</CardTitle
+  Line 583: balance=4                     <CardDescription>Versión {version.version} · ~{version.durac
+  Line 584: balance=4                   </div>
+  Line 585: balance=4                   <div className="flex gap-2">
+  Line 586: balance=4                     <Button variant="outline" size="sm" onClick={() => handleCop
+  Line 587: balance=4                       <Copy className="h-4 w-4 mr-1" /> Copiar
+  Line 588: balance=4                     </Button>
+  Line 589: balance=5                     {editingVersion === idx ? (
+  Line 590: balance=5                       <Button variant="outline" size="sm" onClick={saveEditing}>
+  Line 591: balance=5                     ) : (
+  Line 592: balance=5                       <Button variant="outline" size="sm" onClick={() => startEd
+  Line 593: balance=4                     )}
+  Line 594: balance=4                     <Button size="sm" disabled={sendingToNotion === String(idx)}
+  Line 595: balance=5                       {sendingToNotion === String(idx)
+  Line 596: balance=5                         ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> En
+  Line 597: balance=4                         : <><Send className="h-4 w-4 mr-1" /> Enviar a Notion</>
+  Line 598: balance=4                     </Button>
+  Line 599: balance=4                   </div>
+  Line 600: balance=4                 </div>
+  Line 601: balance=4               </CardHeader>
+  Line 602: balance=4               <CardContent>
+  Line 603: balance=5                 {editingVersion === idx ? (
+  Line 604: balance=5                   <Textarea value={editedText} onChange={(e) => setEditedText(e.
+  Line 605: balance=5                 ) : (
+  Line 606: balance=5                   <ScrollArea className="max-h-96">
+  Line 607: balance=5                     <pre className="whitespace-pre-wrap font-sans text-sm leadin
+  Line 608: balance=5                   </ScrollArea>
+  Line 609: balance=4                 )}
+  Line 610: balance=5                 {version.observaciones_produccion && (
+  Line 611: balance=5                   <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+  Line 612: balance=5                     <p className="text-xs font-medium text-muted-foreground mb-1
+  Line 613: balance=5                     <p className="text-sm">{version.observaciones_produccion}</p
+  Line 614: balance=5                   </div>
+  Line 615: balance=4                 )}
+  Line 616: balance=4               </CardContent>
+  Line 617: balance=4             </Card>
+  Line 618: balance=3           ))}
+  Line 619: balance=4           {lastNotionUrl && (
+  Line 620: balance=4             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border bord
+  Line 621: balance=4               <Check className="h-4 w-4 text-emerald-600" />
+  Line 622: balance=4               <span className="text-sm text-emerald-700 dark:text-emerald-400">
+  Line 623: balance=4                 Último envío exitoso:{' '}
+  Line 624: balance=4                 <a href={lastNotionUrl} target="_blank" rel="noopener noreferrer
+  Line 625: balance=4               </span>
+  Line 626: balance=4             </div>
+  Line 627: balance=3           )}
+  Line 628: balance=3         </div>
+  Line 629: balance=2       )}
+  Line 630: balance=2 
+  Line 631: balance=3       {isGenerating && !generatedResult && (
+  Line 632: balance=3         <Card>
+  Line 633: balance=3           <CardContent className="py-16 flex flex-col items-center justify-cente
+  Line 634: balance=3             <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+  Line 635: balance=3             <p className="text-lg font-medium">Generando libretos con IA...</p>
+  Line 636: balance=3             <p className="text-sm text-muted-foreground mt-1">Esto puede tardar 
+  Line 637: balance=3           </CardContent>
+  Line 638: balance=3         </Card>
+  Line 639: balance=2       )}
+  Line 640: balance=2     </div>
+  Line 641: balance=2   )
+  Line 642: balance=1 }
+  Line 643: balance=1 

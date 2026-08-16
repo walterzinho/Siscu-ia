@@ -1,6 +1,50 @@
 import { create } from 'zustand'
 
-export type ScriptType = 'CUNA_COMERCIAL' | 'CAMPAIGNA' | 'LOCUCION_INSTITUCIONAL' | 'MICRO_PROGRAMA'
+export type ScriptType =
+  | 'LOCUCION_INSTITUCIONAL'
+  | 'MICRO_PROGRAMA'
+  | 'CAMPAIGNA_INSTITUCIONAL'
+  | 'CUNA_PROGRAMA_FRANJA'
+  | 'INFOMERCIAL'
+
+// Cada tipo sabe de dónde toma la info principal
+export const SCRIPT_TYPE_META: Record<ScriptType, {
+  label: string
+  desc: string
+  infoSource: 'emisora' | 'cliente' | 'ambos'
+  icon: string
+}> = {
+  LOCUCION_INSTITUCIONAL: {
+    label: 'Locución Institucional',
+    desc: 'Identificaciones, cortinillas, promos, informativos',
+    infoSource: 'emisora',
+    icon: 'radio',
+  },
+  MICRO_PROGRAMA: {
+    label: 'Micro-programa',
+    desc: 'Contenido corto de 2 a 5 minutos',
+    infoSource: 'emisora',
+    icon: 'mic',
+  },
+  CAMPAIGNA_INSTITUCIONAL: {
+    label: 'Campaña Institucional',
+    desc: 'Ecológica, ciudadana, de ayuda social',
+    infoSource: 'ambos',
+    icon: 'megaphone',
+  },
+  CUNA_PROGRAMA_FRANJA: {
+    label: 'Cuña de Programa / Franja Musical',
+    desc: 'Promoción de programa o bloque musical',
+    infoSource: 'emisora',
+    icon: 'music',
+  },
+  INFOMERCIAL: {
+    label: 'Infomercial',
+    desc: 'Contenido largo sobre producto o servicio del cliente',
+    infoSource: 'cliente',
+    icon: 'file-text',
+  },
+}
 
 export interface GeneratedVersion {
   version: number
@@ -29,41 +73,48 @@ export interface GeneratedScript {
 
 export interface FormData {
   scriptType: ScriptType
+  // Cliente
   clientName: string
   clientBusiness: string
   clientTone: string
   clientKeywords: string
   clientCategory: string
   productName: string
-  stationName: string
-  stationFrequency: string
-  stationGenre: string
-  stationAudience: string
-  programName: string
-  scheduleTime: string
-  duration: string
-  seriesCount: number
-  institutionType: string
-  microDuration: string
-  voiceType: string
-  voiceTone: string
-  musicStyle: string
-  objective: string
-  coreMessage: string
-  ctaText: string
-  promotionText: string
   clientAddress: string
   clientEmail: string
   clientWebsite: string
   clientPhone: string
   clientWhatsapp: string
   clientSocialMedia: string
+  // Emisora
+  stationName: string
+  stationFrequency: string
+  stationGenre: string
+  stationAudience: string
+  programName: string
+  scheduleTime: string
+  // Específicos por tipo
+  institutionType: string
+  microDuration: string
+  campaignInstitutionalType: string
+  campaignTopic: string
+  programFranjaType: string
+  infomercialDuration: string
+  // Producción
+  voiceType: string
+  voiceTone: string
+  musicStyle: string
+  // Mensaje
+  objective: string
+  coreMessage: string
+  ctaText: string
+  promotionText: string
+  // Generación
   numVersions: number
   model: string
 }
 
 interface SiscuniaState {
-  // Settings
   settings: {
     googleApiKeySet: boolean
     notionTokenSet: boolean
@@ -73,16 +124,11 @@ interface SiscuniaState {
     stationGenre: string
     stationAudience: string
   } | null
-  // Form
   formData: FormData
-  // Generation
   isGenerating: boolean
   generatedResult: GeneratedResult | null
-  // History
   scripts: GeneratedScript[]
-  // Tab
   activeTab: string
-  // Actions
   setSettings: (settings: SiscuniaState['settings']) => void
   setFormData: (data: Partial<FormData>) => void
   resetForm: () => void
@@ -93,23 +139,31 @@ interface SiscuniaState {
 }
 
 const defaultFormData: FormData = {
-  scriptType: 'CUNA_COMERCIAL',
+  scriptType: 'LOCUCION_INSTITUCIONAL',
   clientName: '',
   clientBusiness: '',
   clientTone: '',
   clientKeywords: '',
   clientCategory: '',
   productName: '',
+  clientAddress: '',
+  clientEmail: '',
+  clientWebsite: '',
+  clientPhone: '',
+  clientWhatsapp: '',
+  clientSocialMedia: '',
   stationName: '',
   stationFrequency: '',
   stationGenre: '',
   stationAudience: '',
   programName: '',
   scheduleTime: '',
-  duration: '30',
-  seriesCount: 3,
   institutionType: '',
   microDuration: '3',
+  campaignInstitutionalType: '',
+  campaignTopic: '',
+  programFranjaType: '',
+  infomercialDuration: '5',
   voiceType: '',
   voiceTone: '',
   musicStyle: '',
@@ -117,12 +171,6 @@ const defaultFormData: FormData = {
   coreMessage: '',
   ctaText: '',
   promotionText: '',
-  clientAddress: '',
-  clientEmail: '',
-  clientWebsite: '',
-  clientPhone: '',
-  clientWhatsapp: '',
-  clientSocialMedia: '',
   numVersions: 2,
   model: 'gemini-3.6-flash',
 }

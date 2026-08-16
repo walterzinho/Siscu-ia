@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Siscuñia - Generador de Libretos de Radio con IA",
-  description: "Genera cuñas, campañas, locuciones institucionales y micro-programas para tu emisora con inteligencia artificial de Google AI Studio. Integra con Notion.",
+  title: "Siscuñia - Generador de Libretos de información comercial para radio con IA",
+  description: "Genera locuciones institucionales, micro-programas, campañas institucionales, cuñas de programas e infomerciales con inteligencia artificial de Google AI Studio. Integra con Notion.",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
