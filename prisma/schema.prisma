@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Settings {
+  id                String   @id @default(cuid())
+  googleApiKey      String   @default("")
+  notionToken       String   @default("")
+  notionDatabaseId  String   @default("")
+  stationName       String   @default("")
+  stationFrequency  String   @default("")
+  stationGenre      String   @default("")
+  stationAudience   String   @default("")
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model GeneratedScript {
+  id                String   @id @default(cuid())
+  // Tipo de libreto
+  scriptType        String   // CUNA_COMERCIAL, CAMAPAIGNA, LOCUCION_INSTITUCIONAL, MICRO_PROGRAMA
+  // Datos del cliente
+  clientName        String   @default("")
+  clientBusiness    String   @default("")
+  clientTone        String   @default("")
+  clientKeywords    String   @default("")
+  // Datos de la emisora (sobreescriben settings si se llenan)
+  stationName       String   @default("")
+  stationFrequency  String   @default("")
+  stationGenre      String   @default("")
+  stationAudience   String   @default("")
+  programName       String   @default("")
+  scheduleTime      String   @default("")
+  // Especificaciones de audio
+  duration          String   @default("30")
+  voiceType         String   @default("") // masculina, femenina
+  voiceTone         String   @default("") // formal, coloquial, joven, entusiasta
+  musicStyle        String   @default("")
+  // Objetivo y mensaje
+  objective         String   @default("") // venta, informacion, imagen, entretenimiento
+  coreMessage       String   @default("")
+  ctaText           String   @default("")
+  promotionText     String   @default("")
+  // Resultado IA
+  generatedContent  String   // El libreto generado (JSON con versiones)
+  modelUsed         String   @default("")
+  // Notion
+  notionPageId      String   @default("")
+  sentToNotion      Boolean  @default(false)
+  notionSentAt      DateTime?
+  // Metadata
+  createdAt         DateTime @default(now())
+}
