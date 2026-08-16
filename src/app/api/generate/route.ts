@@ -16,9 +16,24 @@ const DURATION_LABELS: Record<string, string> = {
   '180': '3 minutos',
 }
 
-function buildPrompt(data: Record<string, string>, settings: Record<string, string>, numVersions: number): string {
+const INSTITUTION_TYPE_LABELS: Record<string, string> = {
+  identificacion: 'Identificación de emisora/programa',
+  cortinilla: 'Cortinilla / Separador musical',
+  promo: 'Promo de Programación',
+  informativo: 'Informativo / Boletín',
+  lectura_texto: 'Lectura de Texto',
+}
+
+function getDurationLabel(data: Record<string, any>): string {
+  if (data.scriptType === 'MICRO_PROGRAMA') {
+    return `${data.microDuration || 3} minutos`
+  }
+  return 'según contenido' // Cuña y Campaña no tienen duración fija, la IA decide
+}
+
+function buildPrompt(data: Record<string, any>, settings: Record<string, string>, numVersions: number): string {
   const typeLabel = SCRIPT_TYPE_LABELS[data.scriptType] || data.scriptType
-  const durationLabel = DURATION_LABELS[data.duration] || `${data.duration} segundos`
+  const durationLabel = getDurationLabel(data)
   const stationName = data.stationName || settings.stationName || 'la emisora'
   const stationFreq = data.stationFrequency || settings.stationFrequency || ''
   const stationGenre = data.stationGenre || settings.stationGenre || ''
@@ -57,7 +72,7 @@ function buildPrompt(data: Record<string, string>, settings: Record<string, stri
   userPrompt += `
 ## ESPECIFICACIONES DE AUDIO
 `
-  userPrompt += `- Duración aproximada: ${durationLabel}
+  userPrompt += `- Duración: ${durationLabel}
 `
   userPrompt += `- Tipo de voz: ${data.voiceType || 'No especificado'}
 `
@@ -90,20 +105,75 @@ El libreto debe incluir:
 5. Sugerencias de efectos de sonido (SFX) y música entre corchetes [SFX: ...]
 6. Indicaciones de tono y ritmo para el locutor entre paréntesis (ej: (pausa), (con énfasis))
 7. Cierre con identificación de la emisora
+La duración es libre: la IA debe decidir la extensión ideal según el mensaje (típicamente entre 15 y 60 segundos).
 `
   } else if (data.scriptType === 'CAMPAIGNA') {
+    const count = data.seriesCount || 3
     userPrompt += `
 ## INSTRUCCIONES ESPECÍFICAS PARA CAMPAÑA COMPLETA
-Genera una serie de 3 cuñas que formen una campaña coherente:
-1. Cuña 1: Presentación del problema/necesidad (gancho)
-2. Cuña 2: Solución y beneficios de la marca
-3. Cuña 3: Cierre contundente con CTA y oferta
-Cada cuña debe funcionar de forma independiente pero mantener un hilo narrativo común.
-Incluir SFX y música sugeridos.
+Genera una serie de ${count} cuñas que formen una campaña coherente. Cada cuña debe tener su propia personalidad pero compartir un hilo narrativo y elementos comunes (sintonía, eslogan, frase gancho).
+- Estructura progresiva: las primeras cuñas presentan el problema/necesidad, las intermedias desarrollan la solución y beneficios, la última cierra con CTA contundente y oferta.
+- Cada cuña funciona de forma independiente pero se perciben como parte de una misma campaña.
+- Incluir SFX y música sugeridos en cada cuña.
+- En cada cuña, la duración es libre: la IA decide la extensión ideal (típicamente 20-45 segundos cada una).
 `
   } else if (data.scriptType === 'LOCUCION_INSTITUCIONAL') {
+    const instType = INSTITUTION_TYPE_LABELS[data.institutionType] || 'Locución general'
     userPrompt += `
 ## INSTRUCCIONES ESPECÍFICAS PARA LOCUCIÓN INSTITUCIONAL
+Tipo de locución: ${instType}
+`
+    if (data.institutionType === 'identificacion') {
+      userPrompt += `
+El libreto debe ser una identificación de emisora o programa:
+1. Frase de apertura con sintonía o frase característica
+2. Nombre de la emisora y frecuencia
+3. Eslogan o tagline si existe
+4. Referencia al programa o horario si aplica
+5. Musicalización sugerida (cortina musical breve)
+Duración: 5-15 segundos.
+`
+    } else if (data.institutionType === 'cortinilla') {
+      userPrompt += `
+El libreto debe ser una cortinilla / separador:
+1. Transición musical breve con o sin voz
+2. Si lleva voz: frase corta de transición entre segmentos
+3. Debe mantener la identidad sonora de la emisora
+4. Indicar entrada y salida de música
+Duración: 3-10 segundos.
+`
+    } else if (data.institutionType === 'promo') {
+      userPrompt += `
+El libreto debe ser un promo de programación:
+1. Gancho con lo que viene en el programa
+2. Mención del programa, horario y locutor
+3. Razones para sintonizar (invitado especial, tema del día, etc.)
+4. CTA: "no te lo pierdas" o similar
+5. Sugerencias de SFX y musicalización
+Duración: 15-30 segundos.
+`
+    } else if (data.institutionType === 'informativo') {
+      userPrompt += `
+El libreto debe ser un boletín informativo:
+1. Apertura seria con identificación
+2. Desarrollo del dato informativo de forma clara y concisa
+3. Cierre con referencia a la emisora
+4. Tono formal y objetivo
+5. Indicaciones de ritmo (pausas entre datos)
+Duración: 30-60 segundos según cantidad de información.
+`
+    } else if (data.institutionType === 'lectura_texto') {
+      userPrompt += `
+El libreto es para lectura de texto:
+1. Texto adaptado para ser leído en voz alta con naturalidad
+2. Frases cortas y ritmo de lectura fluido
+3. Indicaciones de énfasis, pausas y tono entre paréntesis
+4. Evitar palabras difíciles de pronunciar o indicar fonética
+5. Tono adecuado al contexto (formal, emotivo, motivacional)
+La duración depende de la extensión del texto proporcionado.
+`
+    } else {
+      userPrompt += `
 El libreto debe incluir:
 1. Identificación clara de la emisora/programa
 2. Sintonía o frase característica
@@ -111,15 +181,20 @@ El libreto debe incluir:
 4. Tono acorde a la identidad de la emisora
 5. Sugerencias de musicalización y SFX
 `
+    }
   } else if (data.scriptType === 'MICRO_PROGRAMA') {
+    const microDur = data.microDuration || 3
     userPrompt += `
 ## INSTRUCCIONES ESPECÍFICAS PARA MICRO-PROGRAMA
+Duración objetivo: ${microDur} minutos.
 El libreto debe incluir:
-1. Apertura con identificación del micro
-2. Desarrollo del contenido temático (tips, curiosidades, mensaje editorial)
-3. Cierre con despedida y referencia a la emisora
+1. Apertura con identificación del micro y sintonía
+2. Desarrollo del contenido temático (tips, curiosidades, mensaje editorial, entrevista ficticia)
+   - El contenido debe ser suficiente para llenar ${microDur} minutos al aire
+   - Incluir transiciones, rifas interactivas o secciones internas si aplica
+3. Cierre con despedida, resumen y referencia a la emisora
 4. Indicaciones de ritmo y tono para el locutor
-5. Sugerencias de musicalización y SFX
+5. Sugerencias de musicalización (cortina de entrada, fondo, salida) y SFX
 `
   }
 
@@ -238,7 +313,7 @@ export async function POST(request: Request) {
         stationAudience: data.stationAudience || settings.stationAudience || '',
         programName: data.programName || '',
         scheduleTime: data.scheduleTime || '',
-        duration: data.duration || '30',
+        duration: data.scriptType === 'MICRO_PROGRAMA' ? `${data.microDuration || 3} min` : (data.duration || 'auto'),
         voiceType: data.voiceType || '',
         voiceTone: data.voiceTone || '',
         musicStyle: data.musicStyle || '',

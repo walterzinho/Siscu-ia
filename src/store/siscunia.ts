@@ -40,6 +40,9 @@ export interface FormData {
   programName: string
   scheduleTime: string
   duration: string
+  seriesCount: number
+  institutionType: string
+  microDuration: string
   voiceType: string
   voiceTone: string
   musicStyle: string
@@ -94,6 +97,9 @@ const defaultFormData: FormData = {
   programName: '',
   scheduleTime: '',
   duration: '30',
+  seriesCount: 3,
+  institutionType: '',
+  microDuration: '3',
   voiceType: '',
   voiceTone: '',
   musicStyle: '',

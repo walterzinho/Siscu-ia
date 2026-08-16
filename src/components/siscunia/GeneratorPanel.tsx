@@ -19,10 +19,18 @@ import {
 import { toast } from 'sonner'
 
 const SCRIPT_TYPES: { value: ScriptType; label: string; desc: string }[] = [
-  { value: 'CUNA_COMERCIAL', label: 'Cuña Comercial', desc: 'Spot publicitario de 15" a 60"' },
-  { value: 'CAMPAIGNA', label: 'Campaña Completa', desc: 'Serie de 3 cuñas con hilo narrativo' },
-  { value: 'LOCUCION_INSTITUCIONAL', label: 'Locución Institucional', desc: 'Identificaciones, cortinillas, promos' },
-  { value: 'MICRO_PROGRAMA', label: 'Micro-programa', desc: 'Contenido de 1-3 minutos' },
+  { value: 'CUNA_COMERCIAL', label: 'Cuña Comercial', desc: 'Spot publicitario para clientes de la emisora' },
+  { value: 'CAMPAIGNA', label: 'Campaña Completa', desc: 'Serie de cuñas con hilo narrativo' },
+  { value: 'LOCUCION_INSTITUCIONAL', label: 'Locución Institucional', desc: 'Para la emisora: identificaciones, cortinillas, promos' },
+  { value: 'MICRO_PROGRAMA', label: 'Micro-programa', desc: 'Contenido corto de 2 a 5 minutos' },
+]
+
+const INSTITUTION_TYPES = [
+  { value: 'identificacion', label: 'Identificación' },
+  { value: 'cortinilla', label: 'Cortinilla' },
+  { value: 'promo', label: 'Promo de Programación' },
+  { value: 'informativo', label: 'Informativo' },
+  { value: 'lectura_texto', label: 'Lectura de Texto' },
 ]
 
 export function GeneratorPanel() {
@@ -191,7 +199,62 @@ export function GeneratorPanel() {
 
               <Separator />
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Campos condicionales por tipo */}
+              {formData.scriptType === 'CAMPAIGNA' && (
+                <div className="space-y-2">
+                  <Label>Cantidad de Cuñas de la Serie</Label>
+                  <Select value={String(formData.seriesCount)} onValueChange={(v) => setFormData({ seriesCount: parseInt(v) })}>
+                    <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 cuñas</SelectItem>
+                      <SelectItem value="4">4 cuñas</SelectItem>
+                      <SelectItem value="5">5 cuñas</SelectItem>
+                      <SelectItem value="6">6 cuñas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.scriptType === 'LOCUCION_INSTITUCIONAL' && (
+                <div className="space-y-2">
+                  <Label>Tipo de Locución</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {INSTITUTION_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => setFormData({ institutionType: t.value })}
+                        className={`text-left px-3 py-2 rounded-md border text-sm transition-all ${
+                          formData.institutionType === t.value
+                            ? 'border-primary bg-primary/5 font-medium'
+                            : 'border-border hover:border-primary/30'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {formData.scriptType === 'MICRO_PROGRAMA' && (
+                <div className="space-y-2">
+                  <Label>Duración</Label>
+                  <Select value={formData.microDuration} onValueChange={(v) => setFormData({ microDuration: v })}>
+                    <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 minutos</SelectItem>
+                      <SelectItem value="3">3 minutos</SelectItem>
+                      <SelectItem value="4">4 minutos</SelectItem>
+                      <SelectItem value="5">5 minutos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <Separator />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Modelo de IA</Label>
                   <Select value={formData.model} onValueChange={(v) => setFormData({ model: v })}>
@@ -212,19 +275,6 @@ export function GeneratorPanel() {
                       <SelectItem value="1">1 versión</SelectItem>
                       <SelectItem value="2">2 versiones</SelectItem>
                       <SelectItem value="3">3 versiones</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Duración</Label>
-                  <Select value={formData.duration} onValueChange={(v) => setFormData({ duration: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 segundos</SelectItem>
-                      <SelectItem value="30">30 segundos</SelectItem>
-                      <SelectItem value="60">60 segundos</SelectItem>
-                      <SelectItem value="120">2 minutos</SelectItem>
-                      <SelectItem value="180">3 minutos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
