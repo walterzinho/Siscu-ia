@@ -1,0 +1,818 @@
+     1→'use client'
+     2→
+     3→import { useState } from 'react'
+     4→import {
+     5→  useSiscuniaStore,
+     6→  SCRIPT_TYPE_META,
+     7→  GeneratedResult,
+     8→  GeneratedVersion,
+     9→  ScriptType,
+    10→} from '@/store/siscunia'
+    11→import { Button } from '@/components/ui/button'
+    12→import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+    13→import { Input } from '@/components/ui/input'
+    14→import { Label } from '@/components/ui/label'
+    15→import { Textarea } from '@/components/ui/textarea'
+    16→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    17→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+    18→import { Separator } from '@/components/ui/separator'
+    19→import { Badge } from '@/components/ui/badge'
+    20→import { ScrollArea } from '@/components/ui/scroll-area'
+    21→import {
+    22→  Radio, Mic, Megaphone, Music, FileText,
+    23→  Sparkles, Copy, Send, Loader2, CheckCircle, Pencil, Save, X, RotateCcw, Volume2, Clock,
+    24→} from 'lucide-react'
+    25→import { toast } from 'sonner'
+    26→
+    27→const ICON_MAP: Record<string, React.ReactNode> = {
+    28→  radio: <Radio className="h-5 w-5" />,
+    29→  mic: <Mic className="h-5 w-5" />,
+    30→  megaphone: <Megaphone className="h-5 w-5" />,
+    31→  music: <Music className="h-5 w-5" />,
+    32→  'file-text': <FileText className="h-5 w-5" />,
+    33→}
+    34→
+    35→const INSTITUTION_TYPES = [
+    36→  { value: 'identificacion', label: 'Identificación de emisora/programa' },
+    37→  { value: 'cortinilla', label: 'Cortinilla / Separador musical' },
+    38→  { value: 'promo', label: 'Promo de Programación' },
+    39→  { value: 'informativo', label: 'Informativo / Boletín' },
+    40→  { value: 'lectura_texto', label: 'Lectura de Texto' },
+    41→]
+    42→
+    43→const CAMPAIGN_INST_TYPES = [
+    44→  { value: 'ecologica', label: 'Ecológica' },
+    45→  { value: 'ciudadana', label: 'Comportamiento Ciudadano' },
+    46→  { value: 'ayuda_social', label: 'Ayuda Social' },
+    47→  { value: 'salud', label: 'Salud Pública' },
+    48→  { value: 'educativa', label: 'Educativa' },
+    49→  { value: 'seguridad_vial', label: 'Seguridad Vial' },
+    50→]
+    51→
+    52→const PROGRAM_FRANJA_TYPES = [
+    53→  { value: 'programa', label: 'Programa de radio' },
+    54→  { value: 'franja_musical', label: 'Franja Musical' },
+    55→  { value: 'horario_destacado', label: 'Horario Destacado' },
+    56→]
+    57→
+    58→const MODEL_OPTIONS = [
+    59→  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (rápido)' },
+    60→  { value: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
+    61→  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (calidad)' },
+    62→  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    63→]
+    64→
+    65→export function GeneratorPanel() {
+    66→  const {
+    67→    formData, settings, isGenerating, generatedResult,
+    68→    setFormData, resetForm, setIsGenerating, setGeneratedResult, setScripts,
+    69→  } = useSiscuniaStore()
+    70→
+    71→  const [lastScriptId, setLastScriptId] = useState<string | null>(null)
+    72→  const [editingVersion, setEditingVersion] = useState<number | null>(null)
+    73→  const [editText, setEditText] = useState('')
+    74→  const [sendingToNotion, setSendingToNotion] = useState<number | null>(null)
+    75→  const [formTab, setFormTab] = useState('tipo')
+    76→
+    77→  const meta = SCRIPT_TYPE_META[formData.scriptType]
+    78→  const infoSource = meta?.infoSource || 'ambos'
+    79→
+    80→  const handleGenerate = async () => {
+    81→    // Validate based on type
+    82→    if (showCliente && !formData.clientName) {
+    83→      toast.error('Ingresa el nombre del cliente')
+    84→      setFormTab('cliente')
+    85→      return
+    86→    }
+    87→    if (formData.scriptType === 'LOCUCION_INSTITUCIONAL' && !formData.institutionType) {
+    88→      toast.error('Selecciona el tipo de locución')
+    89→      setFormTab('tipo')
+    90→      return
+    91→    }
+    92→    if (formData.scriptType === 'CAMPAIGNA_INSTITUCIONAL' && !formData.campaignInstitutionalType) {
+    93→      toast.error('Selecciona el tipo de campaña')
+    94→      setFormTab('tipo')
+    95→      return
+    96→    }
+    97→    if (formData.scriptType === 'CUNA_PROGRAMA_FRANJA' && !formData.programFranjaType) {
+    98→      toast.error('Selecciona el tipo de cuña')
+    99→      setFormTab('tipo')
+   100→      return
+   101→    }
+   102→
+   103→    setIsGenerating(true)
+   104→    setGeneratedResult(null)
+   105→    setEditingVersion(null)
+   106→
+   107→    try {
+   108→      const payload = {
+   109→        ...formData,
+   110→        // Pre-fill station from settings if empty
+   111→        stationName: formData.stationName || settings?.stationName || '',
+   112→        stationFrequency: formData.stationFrequency || settings?.stationFrequency || '',
+   113→        stationGenre: formData.stationGenre || settings?.stationGenre || '',
+   114→        stationAudience: formData.stationAudience || settings?.stationAudience || '',
+   115→      }
+   116→
+   117→      const res = await fetch('/api/generate', {
+   118→        method: 'POST',
+   119→        headers: { 'Content-Type': 'application/json' },
+   120→        body: JSON.stringify(payload),
+   121→      })
+   122→      const data = await res.json()
+   123→
+   124→      if (!res.ok) {
+   125→        toast.error(data.error || 'Error al generar')
+   126→        return
+   127→      }
+   128→
+   129→      setGeneratedResult({
+   130→        titulo_sugerido: data.script.titulo_sugerido,
+   131→        versiones: data.script.versiones,
+   132→      })
+   133→      setLastScriptId(data.script.id)
+   134→
+   135→      // Refresh history
+   136→      const scriptsRes = await fetch('/api/scripts')
+   137→      const scriptsData = await scriptsRes.json()
+   138→      setScripts(scriptsData.scripts || [])
+   139→
+   140→      toast.success('Libreto generado correctamente')
+   141→    } catch {
+   142→      toast.error('Error de conexión al generar')
+   143→    } finally {
+   144→      setIsGenerating(false)
+   145→    }
+   146→  }
+   147→
+   148→  const handleSendToNotion = async (versionIndex: number, editedContent?: string) => {
+   149→    if (!lastScriptId) return
+   150→    setSendingToNotion(versionIndex)
+   151→    try {
+   152→      const res = await fetch('/api/send-to-notion', {
+   153→        method: 'POST',
+   154→        headers: { 'Content-Type': 'application/json' },
+   155→        body: JSON.stringify({ scriptId: lastScriptId, versionIndex, editedContent }),
+   156→      })
+   157→      const data = await res.json()
+   158→      if (data.success) {
+   159→        toast.success('Enviado a Notion correctamente')
+   160→        // Refresh history
+   161→        const scriptsRes = await fetch('/api/scripts')
+   162→        const scriptsData = await scriptsRes.json()
+   163→        setScripts(scriptsData.scripts || [])
+   164→      } else {
+   165→        toast.error(data.error || 'Error al enviar a Notion')
+   166→      }
+   167→    } catch {
+   168→      toast.error('Error de conexión con Notion')
+   169→    } finally {
+   170→      setSendingToNotion(null)
+   171→    }
+   172→  }
+   173→
+   174→  const handleCopy = (text: string) => {
+   175→    navigator.clipboard.writeText(text)
+   176→    toast.success('Copiado al portapapeles')
+   177→  }
+   178→
+   179→  const startEditing = (v: GeneratedVersion) => {
+   180→    setEditingVersion(v.version)
+   181→    setEditText(v.libreto)
+   182→  }
+   183→
+   184→  const saveEditing = () => {
+   185→    if (!generatedResult || editingVersion === null) return
+   186→    const updated: GeneratedResult = {
+   187→      ...generatedResult,
+   188→      versiones: generatedResult.versiones.map((v) =>
+   189→        v.version === editingVersion ? { ...v, libreto: editText } : v
+   190→      ),
+   191→    }
+   192→    setGeneratedResult(updated)
+   193→    setEditingVersion(null)
+   194→    toast.success('Versión actualizada')
+   195→  }
+   196→
+   197→  const formatDuration = (secs: number) => {
+   198→    if (secs >= 60) {
+   199→      const m = Math.floor(secs / 60)
+   200→      const s = secs % 60
+   201→      return `${m}:${s.toString().padStart(2, '0')}`
+   202→    }
+   203→    return `${secs}"`
+   204→  }
+   205→
+   206→  return (
+   207→    <div className="grid gap-6 lg:grid-cols-2">
+   208→      {/* === LEFT: Form === */}
+   209→      <div className="space-y-4">
+   210→        <Card>
+   211→          <CardHeader className="pb-3">
+   212→            <CardTitle className="text-base">Configuración del Libreto</CardTitle>
+   213→            <CardDescription>Completa los datos según el tipo de libreto</CardDescription>
+   214→          </CardHeader>
+   215→          <CardContent>
+   216→            <Tabs value={formTab} onValueChange={setFormTab}>
+   217→              <TabsList className="grid w-full grid-cols-4 mb-4">
+   218→                <TabsTrigger value="tipo" className="text-xs sm:text-sm">Tipo</TabsTrigger>
+   219→                <TabsTrigger value="cliente" className="text-xs sm:text-sm">Cliente</TabsTrigger>
+   220→                <TabsTrigger value="emisora" className="text-xs sm:text-sm">Emisora</TabsTrigger>
+   221→                <TabsTrigger value="produccion" className="text-xs sm:text-sm">Producción</TabsTrigger>
+   222→              </TabsList>
+   223→
+   224→              {/* --- TAB: Tipo --- */}
+   225→              <TabsContent value="tipo" className="space-y-4 mt-0">
+   226→                {/* Type selector */}
+   227→                <div className="space-y-2">
+   228→                  <Label>Tipo de libreto</Label>
+   229→                  <div className="grid grid-cols-1 gap-2">
+   230→                    {(Object.entries(SCRIPT_TYPE_META) as [ScriptType, typeof SCRIPT_TYPE_META[ScriptType]][]).map(
+   231→                      ([key, val]) => (
+   232→                        <button
+   233→                          key={key}
+   234→                          type="button"
+   235→                          onClick={() => {
+   236→                            setFormData({ scriptType: key })
+   237→                            setFormTab(showCliente ? 'cliente' : 'emisora')
+   238→                          }}
+   239→                          className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-all hover:bg-accent/50 ${
+   240→                            formData.scriptType === key
+   241→                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+   242→                              : 'border-border'
+   243→                          }`}
+   244→                        >
+   245→                          <div
+   246→                            className={`flex items-center justify-center h-9 w-9 rounded-md shrink-0 ${
+   247→                              formData.scriptType === key
+   248→                                ? 'bg-primary text-primary-foreground'
+   249→                                : 'bg-muted text-muted-foreground'
+   250→                            }`}
+   251→                          >
+   252→                            {ICON_MAP[val.icon] || <FileText className="h-5 w-5" />}
+   253→                          </div>
+   254→                          <div className="min-w-0">
+   255→                            <p className="text-sm font-medium leading-tight">{val.label}</p>
+   256→                            <p className="text-xs text-muted-foreground mt-0.5">{val.desc}</p>
+   257→                          </div>
+   258→                        </button>
+   259→                      )
+   260→                    )}
+   261→                  </div>
+   262→                </div>
+   263→
+   264→                {/* Conditional fields by type */}
+   265→                {formData.scriptType === 'LOCUCION_INSTITUCIONAL' && (
+   266→                  <div className="space-y-2">
+   267→                    <Label>Subtipo de locución</Label>
+   268→                    <Select value={formData.institutionType} onValueChange={(v) => setFormData({ institutionType: v })}>
+   269→                      <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   270→                      <SelectContent>
+   271→                        {INSTITUTION_TYPES.map((t) => (
+   272→                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+   273→                        ))}
+   274→                      </SelectContent>
+   275→                    </Select>
+   276→                  </div>
+   277→                )}
+   278→
+   279→                {formData.scriptType === 'MICRO_PROGRAMA' && (
+   280→                  <div className="space-y-2">
+   281→                    <Label>Duración objetivo</Label>
+   282→                    <Select value={formData.microDuration} onValueChange={(v) => setFormData({ microDuration: v })}>
+   283→                      <SelectTrigger><SelectValue /></SelectTrigger>
+   284→                      <SelectContent>
+   285→                        <SelectItem value="2">2 minutos</SelectItem>
+   286→                        <SelectItem value="3">3 minutos</SelectItem>
+   287→                        <SelectItem value="4">4 minutos</SelectItem>
+   288→                        <SelectItem value="5">5 minutos</SelectItem>
+   289→                      </SelectContent>
+   290→                    </Select>
+   291→                  </div>
+   292→                )}
+   293→
+   294→                {formData.scriptType === 'CAMPAIGNA_INSTITUCIONAL' && (
+   295→                  <div className="space-y-3">
+   296→                    <div className="space-y-2">
+   297→                      <Label>Tipo de campaña</Label>
+   298→                      <Select value={formData.campaignInstitutionalType} onValueChange={(v) => setFormData({ campaignInstitutionalType: v })}>
+   299→                        <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   300→                        <SelectContent>
+   301→                          {CAMPAIGN_INST_TYPES.map((t) => (
+   302→                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+   303→                          ))}
+   304→                        </SelectContent>
+   305→                      </Select>
+   306→                    </div>
+   307→                    <div className="space-y-2">
+   308→                      <Label>Tema específico (opcional)</Label>
+   309→                      <Input
+   310→                        placeholder="Ej: reciclaje en barrios, semáforos peatonales..."
+   311→                        value={formData.campaignTopic}
+   312→                        onChange={(e) => setFormData({ campaignTopic: e.target.value })}
+   313→                      />
+   314→                    </div>
+   315→                  </div>
+   316→                )}
+   317→
+   318→                {formData.scriptType === 'CUNA_PROGRAMA_FRANJA' && (
+   319→                  <div className="space-y-2">
+   320→                    <Label>Tipo de cuña</Label>
+   321→                    <Select value={formData.programFranjaType} onValueChange={(v) => setFormData({ programFranjaType: v })}>
+   322→                      <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   323→                      <SelectContent>
+   324→                        {PROGRAM_FRANJA_TYPES.map((t) => (
+   325→                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+   326→                        ))}
+   327→                      </SelectContent>
+   328→                    </Select>
+   329→                  </div>
+   330→                )}
+   331→
+   332→                {formData.scriptType === 'INFOMERCIAL' && (
+   333→                  <div className="space-y-2">
+   334→                    <Label>Duración objetivo</Label>
+   335→                    <Select value={formData.infomercialDuration} onValueChange={(v) => setFormData({ infomercialDuration: v })}>
+   336→                      <SelectTrigger><SelectValue /></SelectTrigger>
+   337→                      <SelectContent>
+   338→                        <SelectItem value="3">3 minutos</SelectItem>
+   339→                        <SelectItem value="5">5 minutos</SelectItem>
+   340→                        <SelectItem value="10">10 minutos</SelectItem>
+   341→                        <SelectItem value="15">15 minutos</SelectItem>
+   342→                      </SelectContent>
+   343→                    </Select>
+   344→                  </div>
+   345→                )}
+   346→
+   347→                {/* Info source indicator */}
+   348→                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+   349→                  {infoSource === 'cliente' && <Badge variant="outline" className="text-xs">Requiere datos del cliente</Badge>}
+   350→                  {infoSource === 'emisora' && <Badge variant="outline" className="text-xs">Requiere datos de la emisora</Badge>}
+   351→                  {infoSource === 'ambos' && (
+   352→                    <>
+   353→                      <Badge variant="outline" className="text-xs">Cliente</Badge>
+   354→                      <span>+</span>
+   355→                      <Badge variant="outline" className="text-xs">Emisora</Badge>
+   356→                    </>
+   357→                  )}
+   358→                </div>
+   359→              </TabsContent>
+   360→
+   361→              {/* --- TAB: Cliente --- */}
+   362→              <TabsContent value="cliente" className="space-y-4 mt-0">
+   363→                <TabsContent value="cliente" className="space-y-4 mt-0">
+   364→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   365→                    <div className="space-y-1.5 sm:col-span-2">
+   366→                      <Label>Nombre / Razón social *</Label>
+   367→                      <Input
+   368→                        placeholder="Ej: Restaurante El Sabor"
+   369→                        value={formData.clientName}
+   370→                        onChange={(e) => setFormData({ clientName: e.target.value })}
+   371→                      />
+   372→                    </div>
+   373→                    <div className="space-y-1.5">
+   374→                      <Label>Rubro / Industria</Label>
+   375→                      <Input
+   376→                        placeholder="Ej: Gastronomía"
+   377→                        value={formData.clientBusiness}
+   378→                        onChange={(e) => setFormData({ clientBusiness: e.target.value })}
+   379→                      />
+   380→                    </div>
+   381→                    <div className="space-y-1.5">
+   382→                      <Label>Tipo de oferta</Label>
+   383→                      <Select value={formData.clientCategory} onValueChange={(v) => setFormData({ clientCategory: v })}>
+   384→                        <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   385→                        <SelectContent>
+   386→                          <SelectItem value="producto">Producto</SelectItem>
+   387→                          <SelectItem value="servicio">Servicio</SelectItem>
+   388→                        </SelectContent>
+   389→                      </Select>
+   390→                    </div>
+   391→                    {(formData.clientCategory === 'producto' || formData.clientCategory === 'servicio') && (
+   392→                      <div className="space-y-1.5 sm:col-span-2">
+   393→                        <Label>{formData.clientCategory === 'producto' ? 'Producto(s)' : 'Servicio(s)'}</Label>
+   394→                        <Input
+   395→                          placeholder={formData.clientCategory === 'producto' ? 'Ej: Menú ejecutivo, bebidas artesanales' : 'Ej: Catering para eventos, delivery'}
+   396→                          value={formData.productName}
+   397→                          onChange={(e) => setFormData({ productName: e.target.value })}
+   398→                        />
+   399→                      </div>
+   400→                    )}
+   401→                    <div className="space-y-1.5">
+   402→                      <Label>Tono de marca</Label>
+   403→                      <Input
+   404→                        placeholder="Ej: Cercano, formal, juvenil"
+   405→                        value={formData.clientTone}
+   406→                        onChange={(e) => setFormData({ clientTone: e.target.value })}
+   407→                      />
+   408→                    </div>
+   409→                    <div className="space-y-1.5">
+   410→                      <Label>Palabras clave</Label>
+   411→                      <Input
+   412→                        placeholder="Ej: fresco, natural, hogar"
+   413→                        value={formData.clientKeywords}
+   414→                        onChange={(e) => setFormData({ clientKeywords: e.target.value })}
+   415→                      />
+   416→                    </div>
+   417→                  </div>
+   418→
+   419→                  <Separator />
+   420→
+   421→                  <p className="text-xs text-muted-foreground font-medium">Datos de contacto (se incorporarán naturalmente al libreto)</p>
+   422→                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   423→                    <div className="space-y-1.5">
+   424→                      <Label>Dirección</Label>
+   425→                      <Input
+   426→                        placeholder="Cra 10 #5-32"
+   427→                        value={formData.clientAddress}
+   428→                        onChange={(e) => setFormData({ clientAddress: e.target.value })}
+   429→                      />
+   430→                    </div>
+   431→                    <div className="space-y-1.5">
+   432→                      <Label>Teléfono</Label>
+   433→                      <Input
+   434→                        placeholder="(601) 123-4567"
+   435→                        value={formData.clientPhone}
+   436→                        onChange={(e) => setFormData({ clientPhone: e.target.value })}
+   437→                      />
+   438→                    </div>
+   439→                    <div className="space-y-1.5">
+   440→                      <Label>WhatsApp</Label>
+   441→                      <Input
+   442→                        placeholder="+57 300 123 4567"
+   443→                        value={formData.clientWhatsapp}
+   444→                        onChange={(e) => setFormData({ clientWhatsapp: e.target.value })}
+   445→                      />
+   446→                    </div>
+   447→                    <div className="space-y-1.5">
+   448→                      <Label>Correo electrónico</Label>
+   449→                      <Input
+   450→                        placeholder="contacto@ejemplo.com"
+   451→                        value={formData.clientEmail}
+   452→                        onChange={(e) => setFormData({ clientEmail: e.target.value })}
+   453→                      />
+   454→                    </div>
+   455→                    <div className="space-y-1.5">
+   456→                      <Label>Sitio web</Label>
+   457→                      <Input
+   458→                        placeholder="www.ejemplo.com"
+   459→                        value={formData.clientWebsite}
+   460→                        onChange={(e) => setFormData({ clientWebsite: e.target.value })}
+   461→                      />
+   462→                    </div>
+   463→                    <div className="space-y-1.5">
+   464→                      <Label>Redes sociales</Label>
+   465→                      <Input
+   466→                        placeholder="@ejemplo en Instagram, Facebook"
+   467→                        value={formData.clientSocialMedia}
+   468→                        onChange={(e) => setFormData({ clientSocialMedia: e.target.value })}
+   469→                      />
+   470→                    </div>
+   471→                  </div>
+   472→
+   473→                  <Separator />
+   474→
+   475→                  <div className="space-y-3">
+   476→                    <div className="space-y-1.5">
+   477→                      <Label>Objetivo del libreto</Label>
+   478→                      <Textarea
+   479→                        placeholder="Ej: Dar a conocer el nuevo menú del restaurante"
+   480→                        rows={2}
+   481→                        value={formData.objective}
+   482→                        onChange={(e) => setFormData({ objective: e.target.value })}
+   483→                      />
+   484→                    </div>
+   485→                    <div className="space-y-1.5">
+   486→                      <Label>Mensaje central</Label>
+   487→                      <Textarea
+   488→                        placeholder="Ej: Comida casera con ingredientes frescos del campo"
+   489→                        rows={2}
+   490→                        value={formData.coreMessage}
+   491→                        onChange={(e) => setFormData({ coreMessage: e.target.value })}
+   492→                      />
+   493→                    </div>
+   494→                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   495→                      <div className="space-y-1.5">
+   496→                        <Label>Llamado a la acción (CTA)</Label>
+   497→                        <Input
+   498→                          placeholder="Ej: Visítanos en Cra 10 #5-32"
+   499→                          value={formData.ctaText}
+   500→                          onChange={(e) => setFormData({ ctaText: e.target.value })}
+   501→                        />
+   502→                      </div>
+   503→                      <div className="space-y-1.5">
+   504→                        <Label>Promoción / Dato adicional</Label>
+   505→                        <Input
+   506→                          placeholder="Ej: 20% de descuento los viernes"
+   507→                          value={formData.promotionText}
+   508→                          onChange={(e) => setFormData({ promotionText: e.target.value })}
+   509→                        />
+   510→                      </div>
+   511→                    </div>
+   512→                  </div>
+   513→                </TabsContent>
+   514→
+   515→              {/* --- TAB: Emisora --- */}
+   516→              <TabsContent value="emisora" className="space-y-4 mt-0">
+   517→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   518→                  <div className="space-y-1.5">
+   519→                    <Label>Nombre de la emisora</Label>
+   520→                    <Input
+   521→                      placeholder={settings?.stationName || 'Ej: Radio Siscuñia'}
+   522→                      value={formData.stationName}
+   523→                      onChange={(e) => setFormData({ stationName: e.target.value })}
+   524→                    />
+   525→                  </div>
+   526→                  <div className="space-y-1.5">
+   527→                    <Label>Frecuencia</Label>
+   528→                    <Input
+   529→                      placeholder={settings?.stationFrequency || 'Ej: 101.9 FM'}
+   530→                      value={formData.stationFrequency}
+   531→                      onChange={(e) => setFormData({ stationFrequency: e.target.value })}
+   532→                    />
+   533→                  </div>
+   534→                  <div className="space-y-1.5">
+   535→                    <Label>Género musical</Label>
+   536→                    <Input
+   537→                      placeholder={settings?.stationGenre || 'Ej: Pop latino, Vallenato'}
+   538→                      value={formData.stationGenre}
+   539→                      onChange={(e) => setFormData({ stationGenre: e.target.value })}
+   540→                    />
+   541→                  </div>
+   542→                  <div className="space-y-1.5">
+   543→                    <Label>Audiencia objetivo</Label>
+   544→                    <Input
+   545→                      placeholder={settings?.stationAudience || 'Ej: Mujeres 25-45 años'}
+   546→                      value={formData.stationAudience}
+   547→                      onChange={(e) => setFormData({ stationAudience: e.target.value })}
+   548→                    />
+   549→                  </div>
+   550→                  <div className="space-y-1.5">
+   551→                    <Label>Nombre del programa</Label>
+   552→                    <Input
+   553→                      placeholder="Ej: Mañanas Siscuñia"
+   554→                      value={formData.programName}
+   555→                      onChange={(e) => setFormData({ programName: e.target.value })}
+   556→                    />
+   557→                  </div>
+   558→                  <div className="space-y-1.5">
+   559→                    <Label>Horario</Label>
+   560→                    <Input
+   561→                      placeholder="Ej: Lunes a viernes 6:00 - 10:00 AM"
+   562→                      value={formData.scheduleTime}
+   563→                      onChange={(e) => setFormData({ scheduleTime: e.target.value })}
+   564→                    />
+   565→                  </div>
+   566→                </div>
+   567→
+   568→                {infoSource === 'emisora' && (
+   569→                  <>
+   570→                    <Separator />
+   571→                    <div className="space-y-3">
+   572→                      <div className="space-y-1.5">
+   573→                        <Label>Objetivo del libreto</Label>
+   574→                        <Textarea
+   575→                          placeholder="Ej: Promover el espacio de las mañana con temática deportiva"
+   576→                          rows={2}
+   577→                          value={formData.objective}
+   578→                          onChange={(e) => setFormData({ objective: e.target.value })}
+   579→                        />
+   580→                      </div>
+   581→                      <div className="space-y-1.5">
+   582→                        <Label>Mensaje central</Label>
+   583→                        <Textarea
+   584→                          placeholder="Ej: Lo mejor del deporte nacional cada mañana"
+   585→                          rows={2}
+   586→                          value={formData.coreMessage}
+   587→                          onChange={(e) => setFormData({ coreMessage: e.target.value })}
+   588→                        />
+   589→                      </div>
+   590→                    </div>
+   591→                  </>
+   592→                )}
+   593→              </TabsContent>
+   594→
+   595→              {/* --- TAB: Producción --- */}
+   596→              <TabsContent value="produccion" className="space-y-4 mt-0">
+   597→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   598→                  <div className="space-y-1.5">
+   599→                    <Label>Tipo de voz</Label>
+   600→                    <Select value={formData.voiceType} onValueChange={(v) => setFormData({ voiceType: v })}>
+   601→                      <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   602→                      <SelectContent>
+   603→                        <SelectItem value="masculina_profunda">Masculina profunda</SelectItem>
+   604→                        <SelectItem value="masculina_joven">Masculina joven</SelectItem>
+   605→                        <SelectItem value="femenina_suave">Femenina suave</SelectItem>
+   606→                        <SelectItem value="femenina_enérgica">Femenina enérgica</SelectItem>
+   607→                        <SelectItem value="doble_voz">Doble voz (M+F)</SelectItem>
+   608→                      </SelectContent>
+   609→                    </Select>
+   610→                  </div>
+   611→                  <div className="space-y-1.5">
+   612→                    <Label>Tono del locutor</Label>
+   613→                    <Select value={formData.voiceTone} onValueChange={(v) => setFormData({ voiceTone: v })}>
+   614→                      <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+   615→                      <SelectContent>
+   616→                        <SelectItem value="formal">Formal</SelectItem>
+   617→                        <SelectItem value="cercano">Cercano / Amigable</SelectItem>
+   618→                        <SelectItem value="enérgico">Enérgico</SelectItem>
+   619→                        <SelectItem value="suave">Suave / Tranquilo</SelectItem>
+   620→                        <SelectItem value="dramático">Dramático</SelectItem>
+   621→                        <SelectItem value="humorístico">Humorístico</SelectItem>
+   622→                      </SelectContent>
+   623→                    </Select>
+   624→                  </div>
+   625→                  <div className="space-y-1.5 sm:col-span-2">
+   626→                    <Label>Estilo musical de fondo</Label>
+   627→                    <Input
+   628→                      placeholder="Ej: Lo-fi, corporativo, tropical, rock suave"
+   629→                      value={formData.musicStyle}
+   630→                      onChange={(e) => setFormData({ musicStyle: e.target.value })}
+   631→                    />
+   632→                  </div>
+   633→                </div>
+   634→
+   635→                <Separator />
+   636→
+   637→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   638→                  <div className="space-y-1.5">
+   639→                    <Label>Modelo de IA</Label>
+   640→                    <Select value={formData.model} onValueChange={(v) => setFormData({ model: v })}>
+   641→                      <SelectTrigger><SelectValue /></SelectTrigger>
+   642→                      <SelectContent>
+   643→                        {MODEL_OPTIONS.map((m) => (
+   644→                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+   645→                        ))}
+   646→                      </SelectContent>
+   647→                    </Select>
+   648→                  </div>
+   649→                  <div className="space-y-1.5">
+   650→                    <Label>Cantidad de versiones</Label>
+   651→                    <Select value={String(formData.numVersions)} onValueChange={(v) => setFormData({ numVersions: Number(v) })}>
+   652→                      <SelectTrigger><SelectValue /></SelectTrigger>
+   653→                      <SelectContent>
+   654→                        <SelectItem value="1">1 versión</SelectItem>
+   655→                        <SelectItem value="2">2 versiones</SelectItem>
+   656→                        <SelectItem value="3">3 versiones</SelectItem>
+   657→                      </SelectContent>
+   658→                    </Select>
+   659→                  </div>
+   660→                </div>
+   661→              </TabsContent>
+   662→            </Tabs>
+   663→          </CardContent>
+   664→        </Card>
+   665→
+   666→        {/* Generate button */}
+   667→        <div className="flex gap-2">
+   668→          <Button
+   669→            onClick={handleGenerate}
+   670→            disabled={isGenerating}
+   671→            className="flex-1 gap-2"
+   672→            size="lg"
+   673→          >
+   674→            {isGenerating ? (
+   675→              <>
+   676→                <Loader2 className="h-4 w-4 animate-spin" />
+   677→                Generando...
+   678→              </>
+   679→            ) : (
+   680→              <>
+   681→                <Sparkles className="h-4 w-4" />
+   682→                Generar Libreto
+   683→              </>
+   684→            )}
+   685→          </Button>
+   686→          <Button
+   687→            variant="outline"
+   688→            size="lg"
+   689→            onClick={() => { resetForm(); setFormTab('tipo') }}
+   690→            title="Limpiar formulario"
+   691→          >
+   692→            <RotateCcw className="h-4 w-4" />
+   693→          </Button>
+   694→        </div>
+   695→      </div>
+   696→
+   697→      {/* === RIGHT: Results === */}
+   698→      <div>
+   699→        {!generatedResult && !isGenerating && (
+   700→          <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center text-muted-foreground">
+   701→            <Volume2 className="h-16 w-16 mb-4 opacity-20" />
+   702→            <p className="text-lg font-medium">Tu libreto aparecerá aquí</p>
+   703→            <p className="text-sm mt-1">Configura los datos y haz clic en &quot;Generar Libreto&quot;</p>
+   704→          </div>
+   705→        )}
+   706→
+   707→        {isGenerating && (
+   708→          <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+   709→            <div className="relative mb-6">
+   710→              <div className="h-16 w-16 rounded-full border-4 border-muted animate-pulse" />
+   711→              <Sparkles className="h-8 w-8 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-pulse" />
+   712→            </div>
+   713→            <p className="text-lg font-medium">Generando libreto con IA...</p>
+   714→            <p className="text-sm text-muted-foreground mt-1">
+   715→              {formData.model === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' :
+   716→               formData.model === 'gemini-3.7-flash' ? 'Gemini 3.7 Flash' :
+   717→               formData.model === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}
+   718→              {' · '}{formData.numVersions} {formData.numVersions === 1 ? 'versión' : 'versiones'}
+   719→            </p>
+   720→          </div>
+   721→        )}
+   722→
+   723→        {generatedResult && !isGenerating && (
+   724→          <ScrollArea className="max-h-[calc(100vh-200px)]">
+   725→            <div className="space-y-4 pr-4">
+   726→              <div className="flex items-center justify-between">
+   727→                <div>
+   728→                  <h3 className="font-semibold text-base">{generatedResult.titulo_sugerido}</h3>
+   729→                  <p className="text-xs text-muted-foreground">
+   730→                    {generatedResult.versiones.length} {generatedResult.versiones.length === 1 ? 'versión' : 'versiones'} generada{generatedResult.versiones.length === 1 ? '' : 's'}
+   731→                  </p>
+   732→                </div>
+   733→                <Badge variant="outline">
+   734→                  {SCRIPT_TYPE_META[formData.scriptType]?.label}
+   735→                </Badge>
+   736→              </div>
+   737→
+   738→              {generatedResult.versiones.map((version) => (
+   739→                <Card key={version.version} className="overflow-hidden">
+   740→                  <CardHeader className="pb-2">
+   741→                    <div className="flex items-center justify-between">
+   742→                      <CardTitle className="text-sm">{version.titulo}</CardTitle>
+   743→                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+   744→                        <Clock className="h-3.5 w-3.5" />
+   745→                        {formatDuration(version.duracion_estimada_segundos)}
+   746→                      </div>
+   747→                    </div>
+   748→                  </CardHeader>
+   749→                  <CardContent className="space-y-3">
+   750→                    {/* Libreto content */}
+   751→                    <div className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-wrap leading-relaxed font-mono max-h-64 overflow-y-auto">
+   752→                      {editingVersion === version.version ? (
+   753→                        <Textarea
+   754→                          value={editText}
+   755→                          onChange={(e) => setEditText(e.target.value)}
+   756→                          rows={10}
+   757→                          className="font-mono text-sm bg-background"
+   758→                        />
+   759→                      ) : (
+   760→                        version.libreto
+   761→                      )}
+   762→                    </div>
+   763→
+   764→                    {/* Production notes */}
+   765→                    {version.observaciones_produccion && (
+   766→                      <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 rounded-md p-2.5">
+   767→                        <span className="font-medium text-blue-700 dark:text-blue-300">Notas de producción: </span>
+   768→                        {version.observaciones_produccion}
+   769→                      </div>
+   770→                    )}
+   771→
+   772→                    {/* Actions */}
+   773→                    <div className="flex items-center gap-1.5 flex-wrap">
+   774→                      {editingVersion === version.version ? (
+   775→                        <>
+   776→                          <Button size="sm" variant="default" className="h-7 gap-1.5 text-xs" onClick={saveEditing}>
+   777→                            <Save className="h-3.5 w-3.5" /> Guardar
+   778→                          </Button>
+   779→                          <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => setEditingVersion(null)}>
+   780→                            <X className="h-3.5 w-3.5" /> Cancelar
+   781→                          </Button>
+   782→                        </>
+   783→                      ) : (
+   784→                        <>
+   785→                          <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => startEditing(version)}>
+   786→                            <Pencil className="h-3.5 w-3.5" /> Editar
+   787→                          </Button>
+   788→                          <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => handleCopy(version.libreto)}>
+   789→                            <Copy className="h-3.5 w-3.5" /> Copiar
+   790→                          </Button>
+   791→                          <Button
+   792→                            size="sm"
+   793→                            variant="ghost"
+   794→                            className="h-7 gap-1.5 text-xs"
+   795→                            onClick={() => handleSendToNotion(version.version - 1)}
+   796→                            disabled={sendingToNotion === version.version}
+   797→                          >
+   798→                            {sendingToNotion === version.version ? (
+   799→                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   800→                            ) : (
+   801→                              <Send className="h-3.5 w-3.5" />
+   802→                            )}
+   803→                            Enviar a Notion
+   804→                          </Button>
+   805→                        </>
+   806→                      )}
+   807→                    </div>
+   808→                  </CardContent>
+   809→                </Card>
+   810→              ))}
+   811→            </div>
+   812→          </ScrollArea>
+   813→        )}
+   814→      </div>
+   815→    </div>
+   816→  )
+   817→}
+   818→

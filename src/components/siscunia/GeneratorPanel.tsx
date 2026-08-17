@@ -76,12 +76,10 @@ export function GeneratorPanel() {
 
   const meta = SCRIPT_TYPE_META[formData.scriptType]
   const infoSource = meta?.infoSource || 'ambos'
-  const showCliente = infoSource === 'cliente' || infoSource === 'ambos'
-  const showEmisora = infoSource === 'emisora' || infoSource === 'ambos'
 
   const handleGenerate = async () => {
-    // Validate based on type
-    if (showCliente && !formData.clientName) {
+    // Validaciones según tipo
+    if (formData.scriptType === 'INFOMERCIAL' && !formData.clientName) {
       toast.error('Ingresa el nombre del cliente')
       setFormTab('cliente')
       return
@@ -218,7 +216,7 @@ export function GeneratorPanel() {
             <Tabs value={formTab} onValueChange={setFormTab}>
               <TabsList className="grid w-full grid-cols-4 mb-4">
                 <TabsTrigger value="tipo" className="text-xs sm:text-sm">Tipo</TabsTrigger>
-                {showCliente && <TabsTrigger value="cliente" className="text-xs sm:text-sm">Cliente</TabsTrigger>}
+                <TabsTrigger value="cliente" className="text-xs sm:text-sm">Cliente</TabsTrigger>
                 <TabsTrigger value="emisora" className="text-xs sm:text-sm">Emisora</TabsTrigger>
                 <TabsTrigger value="produccion" className="text-xs sm:text-sm">Producción</TabsTrigger>
               </TabsList>
@@ -236,7 +234,7 @@ export function GeneratorPanel() {
                           type="button"
                           onClick={() => {
                             setFormData({ scriptType: key })
-                            setFormTab(showCliente ? 'cliente' : 'emisora')
+                            setFormTab('cliente')
                           }}
                           className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-all hover:bg-accent/50 ${
                             formData.scriptType === key
@@ -361,8 +359,7 @@ export function GeneratorPanel() {
               </TabsContent>
 
               {/* --- TAB: Cliente --- */}
-              {showCliente && (
-                <TabsContent value="cliente" className="space-y-4 mt-0">
+              <TabsContent value="cliente" className="space-y-4 mt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label>Nombre / Razón social *</Label>
@@ -513,7 +510,6 @@ export function GeneratorPanel() {
                     </div>
                   </div>
                 </TabsContent>
-              )}
 
               {/* --- TAB: Emisora --- */}
               <TabsContent value="emisora" className="space-y-4 mt-0">
@@ -568,31 +564,27 @@ export function GeneratorPanel() {
                   </div>
                 </div>
 
-                {infoSource === 'emisora' && (
-                  <>
-                    <Separator />
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label>Objetivo del libreto</Label>
-                        <Textarea
-                          placeholder="Ej: Promover el espacio de las mañana con temática deportiva"
-                          rows={2}
-                          value={formData.objective}
-                          onChange={(e) => setFormData({ objective: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Mensaje central</Label>
-                        <Textarea
-                          placeholder="Ej: Lo mejor del deporte nacional cada mañana"
-                          rows={2}
-                          value={formData.coreMessage}
-                          onChange={(e) => setFormData({ coreMessage: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
+                <Separator />
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Objetivo del libreto</Label>
+                    <Textarea
+                      placeholder="Ej: Promover el espacio de las mañana con temática deportiva"
+                      rows={2}
+                      value={formData.objective}
+                      onChange={(e) => setFormData({ objective: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Mensaje central</Label>
+                    <Textarea
+                      placeholder="Ej: Lo mejor del deporte nacional cada mañana"
+                      rows={2}
+                      value={formData.coreMessage}
+                      onChange={(e) => setFormData({ coreMessage: e.target.value })}
+                    />
+                  </div>
+                </div>
               </TabsContent>
 
               {/* --- TAB: Producción --- */}
