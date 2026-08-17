@@ -74,6 +74,8 @@ export interface GeneratedScript {
 export interface FormData {
   scriptType: ScriptType
   // Cliente
+  clientFormat: string // 'cuna' | 'campaña' | 'infomercial'
+  campaignProductCount: number
   clientName: string
   clientBusiness: string
   clientTone: string
@@ -140,6 +142,8 @@ interface SiscuniaState {
 
 const defaultFormData: FormData = {
   scriptType: 'LOCUCION_INSTITUCIONAL',
+  clientFormat: '',
+  campaignProductCount: 3,
   clientName: '',
   clientBusiness: '',
   clientTone: '',

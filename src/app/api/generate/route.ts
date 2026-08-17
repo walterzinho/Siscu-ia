@@ -50,6 +50,21 @@ function buildPrompt(data: Record<string, any>, settings: Record<string, string>
 
   let userPrompt = `Genera ${numVersions} ${numVersions === 1 ? 'versión' : 'versiones'} de un libreto de radio tipo "${typeLabel}" con las siguientes especificaciones:\n\n`
 
+  // --- FORMATO COMERCIAL DEL CLIENTE ---
+  if (data.clientFormat) {
+    const formatLabels: Record<string, string> = { cuna: 'Cuña', campaña: 'Campaña', infomercial: 'Infomercial' }
+    const formatLabel = formatLabels[data.clientFormat] || data.clientFormat
+    userPrompt += `## FORMATO COMERCIAL\n- Formato: ${formatLabel}\n`
+    if (data.clientFormat === 'campaña' && data.campaignProductCount) {
+      userPrompt += `- Cantidad de productos/servicios en la campaña: ${data.campaignProductCount}\n`
+      userPrompt += `IMPORTANTE: Genera ${data.campaignProductCount} cuñas individuales, cada una enfocada en un producto/servicio diferente del cliente. Cada versión del libreto debe incluir las ${data.campaignProductCount} cuñas claramente separadas y numeradas.\n`
+    }
+    if (data.clientFormat === 'cuna') {
+      userPrompt += `La cuña debe ser concisa, directa y de impacto rápido. Duración típica: 20-40 segundos.\n`
+    }
+    userPrompt += '\n'
+  }
+
   // --- DATOS DEL CLIENTE (si aplica) ---
   const hasClientData = data.clientName || data.clientBusiness || data.productName
   if (hasClientData) {

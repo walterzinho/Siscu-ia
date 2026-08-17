@@ -234,7 +234,8 @@ export function GeneratorPanel() {
                           type="button"
                           onClick={() => {
                             setFormData({ scriptType: key })
-                            setFormTab('cliente')
+                            const dest = (key === 'INFOMERCIAL' || key === 'CAMPAIGNA_INSTITUCIONAL') ? 'cliente' : 'emisora'
+                            setFormTab(dest)
                           }}
                           className={`flex items-center gap-3 rounded-lg border p-3 text-left transition-all hover:bg-accent/50 ${
                             formData.scriptType === key
@@ -360,9 +361,40 @@ export function GeneratorPanel() {
 
               {/* --- TAB: Cliente --- */}
               <TabsContent value="cliente" className="space-y-4 mt-0">
+                  {/* Formato comercial */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Formato comercial</Label>
+                      <Select value={formData.clientFormat} onValueChange={(v) => setFormData({ clientFormat: v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cuna">Cuña</SelectItem>
+                          <SelectItem value="campaña">Campaña</SelectItem>
+                          <SelectItem value="infomercial">Infomercial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.clientFormat === 'campaña' && (
+                      <div className="space-y-1.5">
+                        <Label>Cantidad de productos</Label>
+                        <Select value={String(formData.campaignProductCount)} onValueChange={(v) => setFormData({ campaignProductCount: Number(v) })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="3">3 productos</SelectItem>
+                            <SelectItem value="4">4 productos</SelectItem>
+                            <SelectItem value="5">5 productos</SelectItem>
+                            <SelectItem value="6">6 productos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label>Nombre / Razón social *</Label>
+                      <Label>Nombre / Razón social</Label>
                       <Input
                         placeholder="Ej: Restaurante El Sabor"
                         value={formData.clientName}
