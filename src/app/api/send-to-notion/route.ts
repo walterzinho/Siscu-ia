@@ -19,9 +19,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Libreto no encontrado' }, { status: 404 })
     }
 
-    // Get settings for Notion token
-    const settings = await db.settings.findFirst()
-    if (!settings?.notionToken || !settings?.notionDatabaseId) {
+    // Get settings for Notion token (BD o env vars para Vercel)
+    let settings = await db.settings.findFirst().catch(() => null)
+    const notionToken = settings?.notionToken || process.env.NOTION_TOKEN || ''
+    const notionDbId = settings?.notionDatabaseId || process.env.NOTION_DATABASE_ID || ''
+    if (!notionToken || !notionDbId) {
       return NextResponse.json(
         { error: 'Debes configurar el Token de Notion y el ID de la base de datos' },
         { status: 400 }
@@ -130,12 +132,12 @@ export async function POST(request: Request) {
     const notionResponse = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${settings.notionToken}`,
+        'Authorization': `Bearer ${notionToken}`,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        parent: { database_id: settings.notionDatabaseId },
+        parent: { database_id: notionDbId },
         properties: {
           'Nombre': {
             title: [{

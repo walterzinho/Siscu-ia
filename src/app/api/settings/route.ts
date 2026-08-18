@@ -1,23 +1,43 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+// Fallback a variables de entorno (para Vercel donde SQLite es efímero)
+function envSettings() {
+  return {
+    googleApiKey: process.env.GOOGLE_API_KEY || '',
+    notionToken: process.env.NOTION_TOKEN || '',
+    notionDatabaseId: process.env.NOTION_DATABASE_ID || '',
+    stationName: process.env.STATION_NAME || '',
+    stationFrequency: process.env.STATION_FREQUENCY || '',
+    stationGenre: process.env.STATION_GENRE || '',
+    stationAudience: process.env.STATION_AUDIENCE || '',
+  }
+}
+
 export async function GET() {
   try {
-    let settings = await db.settings.findFirst()
-    if (!settings) {
-      settings = await db.settings.create({ data: {} })
-    }
+    let settings = await db.settings.findFirst().catch(() => null)
+    const env = envSettings()
+
+    // Mezcla: valores de BD优先, fallback a env vars
+    const googleApiKey = settings?.googleApiKey || env.googleApiKey
+    const notionToken = settings?.notionToken || env.notionToken
+    const notionDatabaseId = settings?.notionDatabaseId || env.notionDatabaseId
+
     return NextResponse.json({
-      id: settings.id,
-      googleApiKey: settings.googleApiKey ? '••••' + settings.googleApiKey.slice(-4) : '',
-      googleApiKeySet: !!settings.googleApiKey,
-      notionToken: settings.notionToken ? '••••' + settings.notionToken.slice(-4) : '',
-      notionTokenSet: !!settings.notionToken,
-      notionDatabaseId: settings.notionDatabaseId || '',
-      stationName: settings.stationName || '',
-      stationFrequency: settings.stationFrequency || '',
-      stationGenre: settings.stationGenre || '',
-      stationAudience: settings.stationAudience || '',
+      id: settings?.id || 'env',
+      googleApiKey: googleApiKey ? '••••' + googleApiKey.slice(-4) : '',
+      googleApiKeySet: !!googleApiKey,
+      googleApiKeyFromEnv: !settings?.googleApiKey && !!env.googleApiKey,
+      notionToken: notionToken ? '••••' + notionToken.slice(-4) : '',
+      notionTokenSet: !!notionToken,
+      notionTokenFromEnv: !settings?.notionToken && !!env.notionToken,
+      notionDatabaseId: notionDatabaseId || '',
+      notionDatabaseIdFromEnv: !settings?.notionDatabaseId && !!env.notionDatabaseId,
+      stationName: settings?.stationName || env.stationName,
+      stationFrequency: settings?.stationFrequency || env.stationFrequency,
+      stationGenre: settings?.stationGenre || env.stationGenre,
+      stationAudience: settings?.stationAudience || env.stationAudience,
     })
   } catch (error) {
     console.error('Error fetching settings:', error)
@@ -28,7 +48,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    let settings = await db.settings.findFirst()
+    let settings = await db.settings.findFirst().catch(() => null)
 
     if (settings) {
       const updateData: Record<string, string> = {

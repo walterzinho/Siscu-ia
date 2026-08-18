@@ -167,14 +167,22 @@ export async function POST(request: Request) {
     const data = await request.json()
     const { numVersions = 2, model = 'gemini-3.6-flash' } = data
 
-    const settings = await db.settings.findFirst()
-    if (!settings?.googleApiKey) {
+    // Leer settings de BD o fallback a env vars (para Vercel)
+    let settings = await db.settings.findFirst().catch(() => null)
+    const apiKey = settings?.googleApiKey || process.env.GOOGLE_API_KEY || ''
+    if (!apiKey) {
       return NextResponse.json({ error: 'Debes configurar la API Key de Google AI Studio primero' }, { status: 400 })
     }
+    const mergedSettings = {
+      stationName: settings?.stationName || process.env.STATION_NAME || '',
+      stationFrequency: settings?.stationFrequency || process.env.STATION_FREQUENCY || '',
+      stationGenre: settings?.stationGenre || process.env.STATION_GENRE || '',
+      stationAudience: settings?.stationAudience || process.env.STATION_AUDIENCE || '',
+    }
 
-    const { systemPrompt, userPrompt } = buildPrompt(data, settings, numVersions)
+    const { systemPrompt, userPrompt } = buildPrompt(data, mergedSettings, numVersions)
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.googleApiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -217,8 +225,8 @@ export async function POST(request: Request) {
       data: {
         scriptType: data.scriptType, clientName: data.clientName || '', clientBusiness: data.clientBusiness || '',
         clientTone: data.clientTone || '', clientKeywords: data.clientKeywords || '',
-        stationName: data.stationName || settings.stationName || '', stationFrequency: data.stationFrequency || settings.stationFrequency || '',
-        stationGenre: data.stationGenre || settings.stationGenre || '', stationAudience: data.stationAudience || settings.stationAudience || '',
+        stationName: data.stationName || mergedSettings.stationName || '', stationFrequency: data.stationFrequency || mergedSettings.stationFrequency || '',
+        stationGenre: data.stationGenre || mergedSettings.stationGenre || '', stationAudience: data.stationAudience || mergedSettings.stationAudience || '',
         programName: data.programName || '', scheduleTime: data.scheduleTime || '',
         duration: getDurationLabel(data), voiceType: data.voiceType || '', voiceTone: data.voiceTone || '',
         musicStyle: data.musicStyle || '', objective: data.objective || '', coreMessage: data.coreMessage || '',

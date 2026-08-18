@@ -242,8 +242,8 @@ export function SettingsPanel() {
               <div className="flex items-center gap-2">
                 <StatusIcon state={googleVerify} />
                 {settings?.googleApiKeySet && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Check className="h-3 w-3" /> Guardada
+                  <Badge variant={settings?.googleApiKeyFromEnv ? 'outline' : 'secondary'} className="gap-1">
+                    <Check className="h-3 w-3" /> {settings?.googleApiKeyFromEnv ? 'Desplegada (env)' : 'Guardada'}
                   </Badge>
                 )}
               </div>
@@ -294,8 +294,8 @@ export function SettingsPanel() {
               <div className="flex items-center gap-2">
                 <StatusIcon state={notionTokenVerify} />
                 {settings?.notionTokenSet && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Check className="h-3 w-3" /> Guardado
+                  <Badge variant={settings?.notionTokenFromEnv ? 'outline' : 'secondary'} className="gap-1">
+                    <Check className="h-3 w-3" /> {settings?.notionTokenFromEnv ? 'Desplegado (env)' : 'Guardado'}
                   </Badge>
                 )}
               </div>
