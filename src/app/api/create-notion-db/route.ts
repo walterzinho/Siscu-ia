@@ -67,9 +67,11 @@ export async function POST(request: Request) {
       },
     }
 
-    // Si hay un page padre, crear la DB dentro de esa página
+    // Si hay un page padre, crear la DB dentro de esa página, si no a nivel del workspace
     if (parentId) {
       body.parent = { page_id: parentId }
+    } else {
+      body.parent = { workspace: true }
     }
 
     const res = await fetch('https://api.notion.com/v1/databases', {
