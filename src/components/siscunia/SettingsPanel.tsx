@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Save, Check, Eye, EyeOff, Radio, Database, Key, Loader2, CircleCheck, CircleX, ShieldCheck } from 'lucide-react'
+import { Save, Check, Eye, EyeOff, Radio, Database, Key, Loader2, CircleCheck, CircleX, ShieldCheck, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 type VerifyState = 'idle' | 'checking' | 'ok' | 'error'
@@ -31,6 +31,7 @@ export function SettingsPanel() {
   const [googleVerify, setGoogleVerify] = useState<VerifyState>('idle')
   const [notionTokenVerify, setNotionTokenVerify] = useState<VerifyState>('idle')
   const [notionDbVerify, setNotionDbVerify] = useState<VerifyState>('idle')
+  const [creatingDb, setCreatingDb] = useState(false)
   const [verifyMsg, setVerifyMsg] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -164,6 +165,37 @@ export function SettingsPanel() {
     } catch {
       setNotionDbVerify('error')
       setVerifyMsg((m) => ({ ...m, notionDb: 'Error de conexión' }))
+    }
+  }
+
+  const createNotionDb = async () => {
+    const token = form.notionToken
+    if (!token) {
+      toast.error('Configura y verifica el Token de Notion primero')
+      return
+    }
+    setCreatingDb(true)
+    try {
+      const res = await fetch('/api/create-notion-db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setForm((f) => ({ ...f, notionDatabaseId: data.databaseId }))
+        setNotionDbVerify('ok')
+        setVerifyMsg((m) => ({ ...m, notionDb: `Creada correctamente — ${data.message}` }))
+        toast.success('Base de datos creada en Notion')
+      } else {
+        setNotionDbVerify('error')
+        setVerifyMsg((m) => ({ ...m, notionDb: data.error }))
+        toast.error(data.error || 'Error al crear')
+      }
+    } catch {
+      toast.error('Error de conexion')
+    } finally {
+      setCreatingDb(false)
     }
   }
 
@@ -318,7 +350,7 @@ export function SettingsPanel() {
             <div className="flex gap-2">
               <Input
                 id="notionDatabaseId"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                placeholder="Pega un ID o crea una nueva abajo"
                 value={form.notionDatabaseId}
                 onChange={(e) => {
                   setForm((f) => ({ ...f, notionDatabaseId: e.target.value }))
@@ -326,15 +358,27 @@ export function SettingsPanel() {
                   setVerifyMsg((m) => ({ ...m, notionDb: '' }))
                 }}
               />
+            </div>
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={verifyNotionDb}
                 disabled={notionDbVerify === 'checking' || !form.notionDatabaseId || !form.notionToken}
-                className="shrink-0 gap-1.5"
+                className="gap-1.5"
               >
                 <ShieldCheck className="h-4 w-4" />
                 Verificar
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={createNotionDb}
+                disabled={creatingDb || !form.notionToken}
+                className="gap-1.5"
+              >
+                {creatingDb ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Crear base de datos
               </Button>
             </div>
             <MessageLine msgKey="notionDb" />
