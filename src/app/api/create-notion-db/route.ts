@@ -1,5 +1,25 @@
 import { NextResponse } from 'next/server'
 
+// Busca una página accesible en el workspace para usar como padre
+async function findFirstPage(token: string): Promise<string | null> {
+  const res = await fetch('https://api.notion.com/v1/search', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Notion-Version': '2022-06-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: '',
+      filter: { property: 'object', value: 'page' },
+      page_size: 1,
+    }),
+  })
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.results?.[0]?.id || null
+}
+
 export async function POST(request: Request) {
   try {
     const { token, parentPageId } = await request.json()
@@ -7,15 +27,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token de Notion requerido' }, { status: 400 })
     }
 
-    // Limpia el ID del padre (puede ser una página)
-    let parentId = parentPageId?.trim() || ''
-    if (parentId) {
-      const uuidMatch = parentId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
-      if (uuidMatch) parentId = uuidMatch[0]
+    // Determinar el page_id padre
+    let pageId = parentPageId?.trim() || ''
+    if (pageId) {
+      const uuidMatch = pageId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
+      if (uuidMatch) pageId = uuidMatch[0]
+    }
+
+    // Si no hay page padre, buscar una página en el workspace
+    if (!pageId) {
+      pageId = await findFirstPage(token)
+      if (!pageId) {
+        return NextResponse.json({
+          error: 'No se encontró ninguna página en tu workspace. La integración necesita acceso a al menos una página. Comparte una página con la integración en Notion e intenta de nuevo.',
+        }, { status: 400 })
+      }
     }
 
     // Crea la base de datos con las columnas que necesita Siscuñia
     const body: any = {
+      parent: { page_id: pageId },
       properties: {
         'Nombre': {
           title: {},
@@ -67,13 +98,6 @@ export async function POST(request: Request) {
       },
     }
 
-    // Si hay un page padre, crear la DB dentro de esa página, si no a nivel del workspace
-    if (parentId) {
-      body.parent = { page_id: parentId }
-    } else {
-      body.parent = { workspace: true }
-    }
-
     const res = await fetch('https://api.notion.com/v1/databases', {
       method: 'POST',
       headers: {
@@ -94,15 +118,11 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json()
-    const dbId = data.id
-    const dbTitle = data.title?.[0]?.plain_text || 'Siscuñia - Libretos'
-    const dbUrl = data.url
-
     return NextResponse.json({
       success: true,
-      databaseId: dbId,
-      message: `Base de datos creada: ${dbTitle}`,
-      url: dbUrl,
+      databaseId: data.id,
+      message: `Base de datos creada correctamente`,
+      url: data.url,
     })
   } catch {
     return NextResponse.json({ error: 'Error de conexion con Notion' }, { status: 502 })
