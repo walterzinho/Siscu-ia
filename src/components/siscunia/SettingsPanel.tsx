@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Save, Check, Eye, EyeOff, Radio, Database, Key } from 'lucide-react'
+import { Save, Check, Eye, EyeOff, Radio, Database, Key, Loader2, CircleCheck, CircleX, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
+
+type VerifyState = 'idle' | 'checking' | 'ok' | 'error'
 
 export function SettingsPanel() {
   const { settings, setSettings } = useSiscuniaStore()
@@ -24,6 +26,12 @@ export function SettingsPanel() {
   const [showGoogleKey, setShowGoogleKey] = useState(false)
   const [showNotionToken, setShowNotionToken] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Estados de verificación
+  const [googleVerify, setGoogleVerify] = useState<VerifyState>('idle')
+  const [notionTokenVerify, setNotionTokenVerify] = useState<VerifyState>('idle')
+  const [notionDbVerify, setNotionDbVerify] = useState<VerifyState>('idle')
+  const [verifyMsg, setVerifyMsg] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/settings')
@@ -69,6 +77,118 @@ export function SettingsPanel() {
     }
   }
 
+  const verifyGoogle = async () => {
+    const key = form.googleApiKey
+    if (!key) {
+      toast.error('Ingresa la API Key primero')
+      return
+    }
+    setGoogleVerify('checking')
+    setVerifyMsg((m) => ({ ...m, google: '' }))
+    try {
+      const res = await fetch('/api/verify/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: key }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setGoogleVerify('ok')
+        setVerifyMsg((m) => ({ ...m, google: data.message }))
+      } else {
+        setGoogleVerify('error')
+        setVerifyMsg((m) => ({ ...m, google: data.error }))
+      }
+    } catch {
+      setGoogleVerify('error')
+      setVerifyMsg((m) => ({ ...m, google: 'Error de conexión' }))
+    }
+  }
+
+  const verifyNotionToken = async () => {
+    const token = form.notionToken
+    if (!token) {
+      toast.error('Ingresa el Token primero')
+      return
+    }
+    setNotionTokenVerify('checking')
+    setVerifyMsg((m) => ({ ...m, notionToken: '' }))
+    try {
+      const res = await fetch('/api/verify/notion-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNotionTokenVerify('ok')
+        setVerifyMsg((m) => ({ ...m, notionToken: data.message }))
+      } else {
+        setNotionTokenVerify('error')
+        setVerifyMsg((m) => ({ ...m, notionToken: data.error }))
+      }
+    } catch {
+      setNotionTokenVerify('error')
+      setVerifyMsg((m) => ({ ...m, notionToken: 'Error de conexión' }))
+    }
+  }
+
+  const verifyNotionDb = async () => {
+    const dbId = form.notionDatabaseId
+    if (!dbId) {
+      toast.error('Ingresa el ID de la base de datos primero')
+      return
+    }
+    // Usa el token del formulario o el guardado en settings
+    const token = form.notionToken || null
+    if (!token) {
+      toast.error('Configura y verifica el Token de Notion primero')
+      return
+    }
+    setNotionDbVerify('checking')
+    setVerifyMsg((m) => ({ ...m, notionDb: '' }))
+    try {
+      const res = await fetch('/api/verify/notion-db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, databaseId: dbId }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNotionDbVerify('ok')
+        setVerifyMsg((m) => ({ ...m, notionDb: data.message }))
+      } else {
+        setNotionDbVerify('error')
+        setVerifyMsg((m) => ({ ...m, notionDb: data.error }))
+      }
+    } catch {
+      setNotionDbVerify('error')
+      setVerifyMsg((m) => ({ ...m, notionDb: 'Error de conexión' }))
+    }
+  }
+
+  const StatusIcon = ({ state }: { state: VerifyState }) => {
+    if (state === 'checking') return <Loader2 className="h-4 w-4 animate-spin" />
+    if (state === 'ok') return <CircleCheck className="h-4 w-4 text-emerald-500" />
+    if (state === 'error') return <CircleX className="h-4 w-4 text-red-500" />
+    return null
+  }
+
+  const MessageLine = ({ msgKey }: { msgKey: string }) => {
+    const msg = verifyMsg[msgKey]
+    if (!msg) return null
+    const isError = msgKey === 'google'
+      ? googleVerify === 'error'
+      : msgKey === 'notionToken'
+        ? notionTokenVerify === 'error'
+        : notionDbVerify === 'error'
+    return (
+      <p className={`text-xs mt-1 ${isError ? 'text-red-500' : 'text-emerald-600'}`}>
+        {msg}
+      </p>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* API Keys */}
@@ -79,19 +199,22 @@ export function SettingsPanel() {
             Credenciales de API
           </CardTitle>
           <CardDescription>
-            Configura las llaves de acceso para Google AI Studio y Notion. Las claves se almacenan localmente.
+            Configura y verifica las llaves de acceso. Verifica cada una antes de guardar.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           {/* Google AI Studio */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="googleApiKey" className="font-medium">API Key de Google AI Studio</Label>
-              {settings?.googleApiKeySet && (
-                <Badge variant="secondary" className="gap-1">
-                  <Check className="h-3 w-3" /> Configurada
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                <StatusIcon state={googleVerify} />
+                {settings?.googleApiKeySet && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Check className="h-3 w-3" /> Guardada
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -100,7 +223,11 @@ export function SettingsPanel() {
                   type={showGoogleKey ? 'text' : 'password'}
                   placeholder="AIzaSy..."
                   value={form.googleApiKey}
-                  onChange={(e) => setForm((f) => ({ ...f, googleApiKey: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, googleApiKey: e.target.value }))
+                    setGoogleVerify('idle')
+                    setVerifyMsg((m) => ({ ...m, google: '' }))
+                  }}
                 />
                 <button
                   type="button"
@@ -110,7 +237,18 @@ export function SettingsPanel() {
                   {showGoogleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={verifyGoogle}
+                disabled={googleVerify === 'checking' || !form.googleApiKey}
+                className="shrink-0 gap-1.5"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Verificar
+              </Button>
             </div>
+            <MessageLine msgKey="google" />
             <p className="text-xs text-muted-foreground">
               Obtén tu API Key en{' '}
               <span className="underline">aistudio.google.com/apikey</span>
@@ -121,28 +259,48 @@ export function SettingsPanel() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="notionToken" className="font-medium">Token de Integración de Notion</Label>
-              {settings?.notionTokenSet && (
-                <Badge variant="secondary" className="gap-1">
-                  <Check className="h-3 w-3" /> Configurado
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                <StatusIcon state={notionTokenVerify} />
+                {settings?.notionTokenSet && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Check className="h-3 w-3" /> Guardado
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="relative">
-              <Input
-                id="notionToken"
-                type={showNotionToken ? 'text' : 'password'}
-                placeholder="ntn_... o secret_..."
-                value={form.notionToken}
-                onChange={(e) => setForm((f) => ({ ...f, notionToken: e.target.value }))}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowNotionToken(!showNotionToken)}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="notionToken"
+                  type={showNotionToken ? 'text' : 'password'}
+                  placeholder="ntn_... o secret_..."
+                  value={form.notionToken}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, notionToken: e.target.value }))
+                    setNotionTokenVerify('idle')
+                    setVerifyMsg((m) => ({ ...m, notionToken: '' }))
+                  }}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowNotionToken(!showNotionToken)}
+                >
+                  {showNotionToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={verifyNotionToken}
+                disabled={notionTokenVerify === 'checking' || !form.notionToken}
+                className="shrink-0 gap-1.5"
               >
-                {showNotionToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+                <ShieldCheck className="h-4 w-4" />
+                Verificar
+              </Button>
             </div>
+            <MessageLine msgKey="notionToken" />
             <p className="text-xs text-muted-foreground">
               Crea tu integración en{' '}
               <span className="underline">notion.so/my-integrations</span>
@@ -155,15 +313,34 @@ export function SettingsPanel() {
               <Label htmlFor="notionDatabaseId" className="font-medium flex items-center gap-2">
                 <Database className="h-4 w-4" /> ID de Base de Datos en Notion
               </Label>
+              <StatusIcon state={notionDbVerify} />
             </div>
-            <Input
-              id="notionDatabaseId"
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={form.notionDatabaseId}
-              onChange={(e) => setForm((f) => ({ ...f, notionDatabaseId: e.target.value }))}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="notionDatabaseId"
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={form.notionDatabaseId}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, notionDatabaseId: e.target.value }))
+                  setNotionDbVerify('idle')
+                  setVerifyMsg((m) => ({ ...m, notionDb: '' }))
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={verifyNotionDb}
+                disabled={notionDbVerify === 'checking' || !form.notionDatabaseId || !form.notionToken}
+                className="shrink-0 gap-1.5"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Verificar
+              </Button>
+            </div>
+            <MessageLine msgKey="notionDb" />
             <p className="text-xs text-muted-foreground">
-              Copia el ID de la URL de tu base de datos en Notion (los 32 caracteres hex después del nombre)
+              Copia el ID de la URL de tu base de datos en Notion (los 32 caracteres hex después del nombre).
+              Columnas recomendadas: Nombre, Tipo, Cliente, Duración, Estado, Fecha.
             </p>
           </div>
         </CardContent>
@@ -186,7 +363,7 @@ export function SettingsPanel() {
               <Label htmlFor="stationName">Nombre de la Emisora</Label>
               <Input
                 id="stationName"
-                placeholder="Ej: Radio Siscuñia FM"
+                placeholder="Ej: Radio Siscuña FM"
                 value={form.stationName}
                 onChange={(e) => setForm((f) => ({ ...f, stationName: e.target.value }))}
               />
